@@ -1,0 +1,44 @@
+name: Health Check
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: Binary Smoke Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Build binary
+        run: go build -o tssk${{ matrix.os == 'windows-latest' && '.exe' || '' }} .
+
+      - name: Verify binary runs (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          ./tssk --help
+          ./tssk list || true
+          echo "Binary smoke test passed"
+
+      - name: Verify binary runs (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          .\tssk.exe --help
+          .\tssk.exe list; $true
+          Write-Output "Binary smoke test passed"
+        shell: pwsh

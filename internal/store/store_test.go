@@ -127,7 +127,8 @@ func TestAddAndRemoveDep(t *testing.T) {
 		t.Errorf("t1 data corrupted: got id=%q title=%q", got1.ID, got1.Title)
 	}
 
-	if err := s.AddDep(t2.ID, t1.ID); err != nil {
+	err = s.AddDep(t2.ID, t1.ID)
+	if err != nil {
 		t.Fatalf("AddDep: %v", err)
 	}
 

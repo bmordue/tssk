@@ -57,7 +57,7 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 		}
 		return nil, fmt.Errorf("opening tasks file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var tasks []*task.Task
 	scanner := bufio.NewScanner(f)
@@ -95,14 +95,14 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 	enc := json.NewEncoder(tmpFile)
 	for _, t := range tasks {
 		if err := enc.Encode(t); err != nil {
-			tmpFile.Close()
+			_ = tmpFile.Close()
 			_ = os.Remove(tmpName)
 			return fmt.Errorf("writing task %s: %w", t.ID, err)
 		}
 	}
 
 	if err := tmpFile.Sync(); err != nil {
-		tmpFile.Close()
+		_ = tmpFile.Close()
 		_ = os.Remove(tmpName)
 		return fmt.Errorf("syncing temp tasks file: %w", err)
 	}
