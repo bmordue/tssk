@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -29,7 +30,9 @@ func DefaultRetryConfig() RetryConfig {
 }
 
 // withRetry executes fn up to cfg.MaxAttempts times, waiting between retries
-// using exponential backoff.  The last error is returned if all attempts fail.
+// using exponential backoff.  Errors wrapping ErrNotFound are not retried as
+// they indicate a permanent condition.  The last error is returned if all
+// attempts fail.
 func withRetry(cfg RetryConfig, fn func() error) error {
 	if cfg.MaxAttempts < 1 {
 		cfg.MaxAttempts = 1
@@ -43,6 +46,10 @@ func withRetry(cfg RetryConfig, fn func() error) error {
 
 	for attempt := 0; attempt < cfg.MaxAttempts; attempt++ {
 		if err := fn(); err != nil {
+			// ErrNotFound is a permanent condition; retrying will not help.
+			if errors.Is(err, ErrNotFound) {
+				return err
+			}
 			lastErr = err
 			if attempt < cfg.MaxAttempts-1 {
 				time.Sleep(delay)
@@ -94,6 +101,12 @@ func (r *RetryBackend) ReadDetail(docHash string) (result []byte, err error) {
 func (r *RetryBackend) WriteDetail(docHash string, data []byte) error {
 	return withRetry(r.cfg, func() error {
 		return r.inner.WriteDetail(docHash, data)
+	})
+}
+
+func (r *RetryBackend) DeleteDetail(docHash string) error {
+	return withRetry(r.cfg, func() error {
+		return r.inner.DeleteDetail(docHash)
 	})
 }
 

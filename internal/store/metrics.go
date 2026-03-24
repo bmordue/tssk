@@ -27,6 +27,7 @@ type Metrics struct {
 	WriteTasksData OperationMetrics
 	ReadDetail     OperationMetrics
 	WriteDetail    OperationMetrics
+	DeleteDetail   OperationMetrics
 	HealthCheck    OperationMetrics
 }
 
@@ -82,6 +83,12 @@ func (mb *MeteredBackend) ReadDetail(docHash string) (result []byte, err error) 
 func (mb *MeteredBackend) WriteDetail(docHash string, data []byte) error {
 	return record(&mb.metrics.WriteDetail, func() error {
 		return mb.inner.WriteDetail(docHash, data)
+	})
+}
+
+func (mb *MeteredBackend) DeleteDetail(docHash string) error {
+	return record(&mb.metrics.DeleteDetail, func() error {
+		return mb.inner.DeleteDetail(docHash)
 	})
 }
 

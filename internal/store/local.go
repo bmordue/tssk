@@ -102,6 +102,16 @@ func (b *LocalBackend) WriteDetail(docHash string, data []byte) error {
 	return nil
 }
 
+// DeleteDetail removes the markdown detail file for the given docHash.
+// A missing file is treated as a no-op.
+func (b *LocalBackend) DeleteDetail(docHash string) error {
+	err := os.Remove(b.docPath(docHash))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("deleting detail file: %w", err)
+	}
+	return nil
+}
+
 // HealthCheck verifies the root directory is accessible.
 func (b *LocalBackend) HealthCheck() error {
 	if _, err := os.Stat(b.root); err != nil {

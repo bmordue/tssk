@@ -25,6 +25,7 @@ var ErrNotFound = errors.New("task not found")
 // here; raw I/O is delegated to the Backend.
 type Store struct {
 	backend Backend
+	metrics *Metrics
 }
 
 // New creates a Store backed by the local filesystem rooted at root.
@@ -41,6 +42,12 @@ func NewWithBackend(b Backend) *Store {
 // HealthCheck delegates to the underlying Backend's HealthCheck.
 func (s *Store) HealthCheck() error {
 	return s.backend.HealthCheck()
+}
+
+// Metrics returns the metrics collector associated with this Store, or nil
+// when the Store was not created via NewFromConfig (i.e. no MeteredBackend).
+func (s *Store) Metrics() *Metrics {
+	return s.metrics
 }
 
 // LoadAll reads all tasks from the backend.  Returns an empty slice when
@@ -130,6 +137,11 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 
 	tasks = append(tasks, t)
 	if err := s.saveAll(tasks); err != nil {
+		// Best-effort rollback: remove the detail we just wrote to avoid
+		// leaving it orphaned while the task list does not reference it.
+		if derr := s.backend.DeleteDetail(t.DocHash); derr != nil {
+			return nil, fmt.Errorf("failed to save tasks: %w; rollback also failed: %v", err, derr)
+		}
 		return nil, err
 	}
 	return t, nil

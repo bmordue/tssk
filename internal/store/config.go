@@ -104,5 +104,7 @@ func NewFromConfig(cfg *Config) (*Store, error) {
 	m := &Metrics{}
 	backend = NewMeteredBackend(backend, m)
 
-	return NewWithBackend(backend), nil
+	s := NewWithBackend(backend)
+	s.metrics = m
+	return s, nil
 }

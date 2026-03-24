@@ -21,6 +21,7 @@ import (
 type s3API interface {
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
 	HeadBucket(ctx context.Context, params *s3.HeadBucketInput, optFns ...func(*s3.Options)) (*s3.HeadBucketOutput, error)
 }
 
@@ -67,15 +68,30 @@ func NewS3Backend(cfg S3Config) (*S3Backend, error) {
 
 	optFns := []func(*awsconfig.LoadOptions) error{
 		awsconfig.WithRegion(region),
-		// Use a shared transport to enable connection pooling across all requests.
-		awsconfig.WithHTTPClient(&http.Client{
-			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				MaxIdleConnsPerHost: 10,
-				IdleConnTimeout:     90 * time.Second,
-			},
-			Timeout: timeout,
-		}),
+		// Clone http.DefaultTransport to preserve important defaults (proxy
+		// settings, dialer configuration, TLS timeouts, HTTP/2) and only
+		// override connection-pooling–related fields.
+		// In practice, http.DefaultTransport is always *http.Transport, so
+		// the fallback branch is a defensive safety net for unusual setups
+		// where the global transport has been replaced.
+		awsconfig.WithHTTPClient(func() *http.Client {
+			base, ok := http.DefaultTransport.(*http.Transport)
+			if !ok {
+				// http.DefaultTransport has been replaced with a non-standard
+				// implementation; fall back to a safe set of defaults.
+				base = &http.Transport{
+					MaxIdleConns:        100,
+					MaxIdleConnsPerHost: 10,
+					IdleConnTimeout:     90 * time.Second,
+				}
+				return &http.Client{Transport: base, Timeout: timeout}
+			}
+			t := base.Clone()
+			t.MaxIdleConns = 100
+			t.MaxIdleConnsPerHost = 10
+			t.IdleConnTimeout = 90 * time.Second
+			return &http.Client{Transport: t, Timeout: timeout}
+		}()),
 	}
 
 	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), optFns...)
@@ -94,16 +110,24 @@ func NewS3Backend(cfg S3Config) (*S3Backend, error) {
 	}
 
 	client := s3.NewFromConfig(awsCfg, s3Opts...)
-	return NewS3BackendWithClient(client, cfg, timeout), nil
+	backend, err := NewS3BackendWithClient(client, cfg, timeout)
+	if err != nil {
+		return nil, err
+	}
+	return backend, nil
 }
 
 // NewS3BackendWithClient creates an S3Backend using the supplied client.
 // This is primarily intended for tests that inject a mock S3 client.
-func NewS3BackendWithClient(client s3API, cfg S3Config, timeout time.Duration) *S3Backend {
+// Returns an error if required configuration (e.g. Bucket) is missing.
+func NewS3BackendWithClient(client s3API, cfg S3Config, timeout time.Duration) (*S3Backend, error) {
+	if cfg.Bucket == "" {
+		return nil, errors.New("s3 backend: bucket name must not be empty")
+	}
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
-	return &S3Backend{client: client, cfg: cfg, timeout: timeout}
+	return &S3Backend{client: client, cfg: cfg, timeout: timeout}, nil
 }
 
 // key returns the full S3 object key for the given relative path.
@@ -199,6 +223,23 @@ func (b *S3Backend) WriteDetail(docHash string, data []byte) error {
 	rel := docsDir + "/" + docHash + ".md"
 	if err := b.putObject(b.key(rel), data); err != nil {
 		return fmt.Errorf("s3 backend WriteDetail: %w", err)
+	}
+	return nil
+}
+
+// DeleteDetail removes the detail object for the given docHash.
+// A missing object is treated as a no-op.
+func (b *S3Backend) DeleteDetail(docHash string) error {
+	rel := docsDir + "/" + docHash + ".md"
+	ctx, cancel := b.ctx()
+	defer cancel()
+
+	_, err := b.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(b.cfg.Bucket),
+		Key:    aws.String(b.key(rel)),
+	})
+	if err != nil {
+		return fmt.Errorf("s3 backend DeleteDetail: %w", err)
 	}
 	return nil
 }

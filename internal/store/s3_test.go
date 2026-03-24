@@ -43,6 +43,12 @@ func (m *mockS3Client) PutObject(_ context.Context, params *s3.PutObjectInput, _
 	return &s3.PutObjectOutput{}, nil
 }
 
+func (m *mockS3Client) DeleteObject(_ context.Context, params *s3.DeleteObjectInput, _ ...func(*s3.Options)) (*s3.DeleteObjectOutput, error) {
+	key := aws.ToString(params.Key)
+	delete(m.objects, key)
+	return &s3.DeleteObjectOutput{}, nil
+}
+
 func (m *mockS3Client) HeadBucket(_ context.Context, _ *s3.HeadBucketInput, _ ...func(*s3.Options)) (*s3.HeadBucketOutput, error) {
 	if m.headBucketFn != nil {
 		return nil, m.headBucketFn()
@@ -54,7 +60,10 @@ func newTestS3Backend(t *testing.T) (*S3Backend, *mockS3Client) {
 	t.Helper()
 	mock := newMockS3()
 	cfg := S3Config{Bucket: "test-bucket"}
-	b := NewS3BackendWithClient(mock, cfg, 0)
+	b, err := NewS3BackendWithClient(mock, cfg, 0)
+	if err != nil {
+		t.Fatalf("NewS3BackendWithClient: %v", err)
+	}
 	return b, mock
 }
 
@@ -112,7 +121,10 @@ func TestS3Backend_ReadDetailNotFound(t *testing.T) {
 func TestS3Backend_PrefixIsApplied(t *testing.T) {
 	mock := newMockS3()
 	cfg := S3Config{Bucket: "bucket", Prefix: "tssk"}
-	b := NewS3BackendWithClient(mock, cfg, 0)
+	b, err := NewS3BackendWithClient(mock, cfg, 0)
+	if err != nil {
+		t.Fatalf("NewS3BackendWithClient: %v", err)
+	}
 
 	if err := b.WriteTasksData([]byte("data\n")); err != nil {
 		t.Fatalf("WriteTasksData: %v", err)
@@ -127,7 +139,10 @@ func TestS3Backend_PrefixIsApplied(t *testing.T) {
 func TestS3Backend_PrefixWithTrailingSlash(t *testing.T) {
 	mock := newMockS3()
 	cfg := S3Config{Bucket: "bucket", Prefix: "tssk/"}
-	b := NewS3BackendWithClient(mock, cfg, 0)
+	b, err := NewS3BackendWithClient(mock, cfg, 0)
+	if err != nil {
+		t.Fatalf("NewS3BackendWithClient: %v", err)
+	}
 
 	if err := b.WriteTasksData([]byte("x\n")); err != nil {
 		t.Fatalf("WriteTasksData: %v", err)
@@ -148,7 +163,10 @@ func TestS3Backend_HealthCheckFails(t *testing.T) {
 	mock := newMockS3()
 	mock.headBucketFn = func() error { return errors.New("access denied") }
 	cfg := S3Config{Bucket: "bucket"}
-	b := NewS3BackendWithClient(mock, cfg, 0)
+	b, err := NewS3BackendWithClient(mock, cfg, 0)
+	if err != nil {
+		t.Fatalf("NewS3BackendWithClient: %v", err)
+	}
 
 	if err := b.HealthCheck(); err == nil {
 		t.Error("expected HealthCheck to fail")
@@ -160,7 +178,10 @@ func TestS3Backend_HealthCheckFails(t *testing.T) {
 func TestS3BackendIntegration(t *testing.T) {
 	mock := newMockS3()
 	cfg := S3Config{Bucket: "bucket"}
-	backend := NewS3BackendWithClient(mock, cfg, 0)
+	backend, err := NewS3BackendWithClient(mock, cfg, 0)
+	if err != nil {
+		t.Fatalf("NewS3BackendWithClient: %v", err)
+	}
 	s := NewWithBackend(backend)
 
 	tk, err := s.Add("S3 task", "detail content", nil)
