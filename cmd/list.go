@@ -46,7 +46,7 @@ var listCmd = &cobra.Command{
 			}
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", t.ID, t.Status, t.Title, deps)
 		}
-		w.Flush()
+		_ = w.Flush()
 		return nil
 	},
 }
