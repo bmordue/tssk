@@ -100,6 +100,24 @@ By default, tssk uses the current working directory as the project root. Set the
 TSSK_ROOT=/path/to/project tssk list
 ```
 
+## Development
+
+### Running Tests
+
+To run all tests in the project:
+
+```bash
+go test ./...
+```
+
+### Formatting Code
+
+To format the code according to Go standards:
+
+```bash
+go fmt ./...
+```
+
 ## Development Environment
 
 ### Using Nix
