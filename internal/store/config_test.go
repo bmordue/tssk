@@ -1,14 +1,13 @@
 package store_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/bmordue/tssk/internal/store"
 )
 
 func TestConfigFromEnv_DefaultsToLocal(t *testing.T) {
-	os.Unsetenv(store.EnvBackend)
+	t.Setenv(store.EnvBackend, "")
 	cfg, err := store.ConfigFromEnv("/some/root")
 	if err != nil {
 		t.Fatalf("ConfigFromEnv: %v", err)
