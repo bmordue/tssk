@@ -1,9 +1,5 @@
 # tssk Development Roadmap
 
-> **tssk** – a command line tool for managing repository tasks for humans and AI agents.
-
----
-
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
@@ -21,8 +17,6 @@
 8. [Milestone Tracking Template](#milestone-tracking-template)
 9. [Roadmap Review Schedule](#roadmap-review-schedule)
 
----
-
 ## Project Overview
 
 **tssk** is a lightweight, file-based task manager designed for both human developers and AI coding agents working inside a git repository. Tasks are stored in a `tasks.jsonl` JSONL file and full detail text is kept in content-addressed Markdown files under `docs/`. The CLI (built with [Cobra](https://github.com/spf13/cobra)) supports adding, listing, showing, updating, and linking dependent tasks.
@@ -36,8 +30,6 @@
 - Single-binary Go CLI.
 - Storage backend: flat JSONL file + content-addressed Markdown detail files.
 - No external database or network service required for core operation.
-
----
 
 ## Visual Timeline
 
@@ -86,14 +78,11 @@ gantt
     Web / TUI frontend              :         p4-ui,    2026-11-01, 2027-02-28
 ```
 
----
-
 ## Phase Breakdown
 
 ### Phase 0 – Foundation (current)
 
 **Status:** In progress  
-**Target completion:** 2026-04-01
 
 This phase covers the work already committed to the repository plus the items needed to stabilise the foundation before feature development begins.
 
@@ -109,9 +98,7 @@ This phase covers the work already committed to the repository plus the items ne
 - All existing tests pass on every commit via CI.
 - Automated security scanning runs on each pull request.
 
----
-
-### Phase 1 – MVP (2026-04-01 → 2026-05-31)
+### Phase 1 – MVP
 
 **Goal:** A polished, documented, and discoverable MVP suitable for daily use by individual developers and small AI-agent workflows.
 
@@ -139,11 +126,7 @@ This phase covers the work already committed to the repository plus the items ne
 - `tssk --help` and per-command help text cover all flags.
 - README score ≥ 8/10 (peer review checklist).
 
-**Review point:** 2026-05-31
-
----
-
-### Phase 2 – Beta (2026-06-01 → 2026-07-31)
+### Phase 2 – Beta
 
 **Goal:** Expand the feature set to cover richer metadata, improve developer experience, and harden quality via integration tests.
 
@@ -174,9 +157,7 @@ This phase covers the work already committed to the repository plus the items ne
 
 **Review point:** 2026-07-31
 
----
-
-### Phase 3 – v1.0 (2026-08-01 → 2026-09-30)
+### Phase 3 – v1.0
 
 **Goal:** Production-ready v1.0 release with a stable public API, comprehensive documentation, and distribution packaging.
 
@@ -204,11 +185,7 @@ This phase covers the work already committed to the repository plus the items ne
 - Binary size < 15 MB.
 - Install-to-first-task time < 2 minutes (measured against documented quick-start).
 
-**Review point:** 2026-09-30 (GA release)
-
----
-
-### Phase 4 – Future / Post-v1.0 (2026-10-01+)
+### Phase 4 – Future / Post-v1.0
 
 These items are aspirational and subject to revision at the v1.0 review.
 
@@ -219,8 +196,6 @@ These items are aspirational and subject to revision at the v1.0 review.
 | Web / TUI frontend | Terminal UI (`bubbletea`) or lightweight web UI | Q1 2027 |
 | AI agent SDK | Typed Go client library for AI agents to interact with tssk | Q1 2027 |
 | Multi-repo task aggregation | Aggregate tasks across multiple repositories | Q2 2027 |
-
----
 
 ## Feature Prioritisation
 
@@ -239,8 +214,6 @@ These items are aspirational and subject to revision at the v1.0 review.
 | Plugin / hook system | Medium | High | P4 |
 | Remote storage backend | High | High | P4 |
 | Web / TUI frontend | Medium | High | P4 |
-
----
 
 ## Dependencies Map
 
@@ -278,8 +251,6 @@ graph TD
     P3_AUDIT --> P3_GA
 ```
 
----
-
 ## Risk Register
 
 | ID | Risk | Likelihood | Impact | Mitigation |
@@ -292,8 +263,6 @@ graph TD
 | R-6 | Single-file JSONL store causes data loss on concurrent writes | Low | High | Atomic rename pattern already implemented; add advisory file locking in Phase 2 |
 | R-7 | Build pipeline (CI/CD) is fragile or slow | Medium | Medium | Address in Phase 0 (#8); add caching and parallelism |
 
----
-
 ## Resource Requirements
 
 | Phase | Estimated Effort | Required Skills |
@@ -303,54 +272,3 @@ graph TD
 | Phase 2 – Beta | ~25 dev-days | Go, testing (table-driven, integration), security tooling |
 | Phase 3 – v1.0 | ~25 dev-days | Go, release engineering, static site tooling, security audit |
 | Phase 4 – Future | TBD | Go, frontend/TUI, cloud storage APIs |
-
-> All estimates assume one developer. Parallel work by multiple contributors or AI agents will compress timelines accordingly.
-
----
-
-## Milestone Tracking Template
-
-Copy this template into a GitHub Project milestone description or issue body:
-
-```markdown
-## Milestone: <Phase Name>
-
-**Target date:** YYYY-MM-DD
-**Status:** [ ] Not started / [ ] In progress / [ ] Complete
-
-### Deliverables
-- [ ] <Deliverable 1>
-- [ ] <Deliverable 2>
-
-### Success Criteria
-- [ ] <Criterion 1>
-- [ ] <Criterion 2>
-
-### Blockers / Risks
-- <Blocker or risk description>
-
-### Notes
-<!-- Any additional context -->
-```
-
----
-
-## Roadmap Review Schedule
-
-Regular reviews keep the roadmap aligned with actual progress and changing priorities.
-
-| Review | Date | Scope |
-|--------|------|-------|
-| Phase 1 mid-point check | 2026-05-01 | Progress against Phase 1 tasks; adjust estimates |
-| Phase 1 completion review | 2026-05-31 | Phase 1 retrospective; confirm Phase 2 plan |
-| Phase 2 mid-point check | 2026-07-01 | Progress against Phase 2 tasks; adjust estimates |
-| Phase 2 completion review | 2026-07-31 | Phase 2 retrospective; confirm Phase 3 plan |
-| v1.0 release review | 2026-09-30 | GA release; kick off Phase 4 planning |
-| Post-v1.0 quarterly review | 2026-12-31 | Phase 4 progress; long-term strategic alignment |
-
-Reviews should include:
-1. Progress against deliverables and success metrics.
-2. Re-prioritisation of remaining and new features.
-3. Update of the risk register (new risks, resolved risks, changed likelihood/impact).
-4. Adjustment of timeline estimates based on actual velocity.
-5. Stakeholder sign-off before proceeding to the next phase.
