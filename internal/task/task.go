@@ -37,28 +37,26 @@ type Task struct {
 	Status       Status    `json:"status"`
 	Dependencies []string  `json:"dependencies,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
-	// DocHash is the SHA-256 hash of the metadata JSON blob; it is also the
+	// DocHash is the SHA-256 hash of the canonical JSON representation of the
+	// immutable task metadata fields (id, title, created_at); it is also the
 	// filename (without extension) of the corresponding markdown detail file.
 	DocHash string `json:"doc_hash"`
 }
 
-// MetaJSON returns the canonical JSON representation of the task metadata
-// fields that are used as input to the content-address hash.  DocHash itself
-// is intentionally excluded so the hash is deterministic at creation time.
+// MetaJSON returns the canonical JSON representation of the immutable task
+// metadata fields that are used as input to the content-address hash.
+// DocHash itself is intentionally excluded so the hash is deterministic at
+// creation time.
 func (t *Task) MetaJSON() ([]byte, error) {
 	type hashable struct {
-		ID           string    `json:"id"`
-		Title        string    `json:"title"`
-		Status       Status    `json:"status"`
-		Dependencies []string  `json:"dependencies,omitempty"`
-		CreatedAt    time.Time `json:"created_at"`
+		ID        string    `json:"id"`
+		Title     string    `json:"title"`
+		CreatedAt time.Time `json:"created_at"`
 	}
 	return json.Marshal(hashable{
-		ID:           t.ID,
-		Title:        t.Title,
-		Status:       t.Status,
-		Dependencies: t.Dependencies,
-		CreatedAt:    t.CreatedAt,
+		ID:        t.ID,
+		Title:     t.Title,
+		CreatedAt: t.CreatedAt,
 	})
 }
 

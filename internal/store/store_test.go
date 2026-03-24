@@ -109,8 +109,23 @@ func TestUpdateStatus(t *testing.T) {
 
 func TestAddAndRemoveDep(t *testing.T) {
 	s := newTempStore(t)
-	t1, _ := s.Add("First task", "", nil)
-	t2, _ := s.Add("Second task", "", nil)
+	t1, err := s.Add("First task", "", nil)
+	if err != nil {
+		t.Fatalf("Add t1: %v", err)
+	}
+	t2, err := s.Add("Second task", "", nil)
+	if err != nil {
+		t.Fatalf("Add t2: %v", err)
+	}
+
+	// Both tasks must be independently retrievable after writing two JSONL lines.
+	got1, err := s.Get(t1.ID)
+	if err != nil {
+		t.Fatalf("Get t1 after adding t2: %v", err)
+	}
+	if got1.ID != t1.ID || got1.Title != t1.Title {
+		t.Errorf("t1 data corrupted: got id=%q title=%q", got1.ID, got1.Title)
+	}
 
 	if err := s.AddDep(t2.ID, t1.ID); err != nil {
 		t.Fatalf("AddDep: %v", err)
@@ -119,6 +134,15 @@ func TestAddAndRemoveDep(t *testing.T) {
 	reloaded, _ := s.Get(t2.ID)
 	if !reloaded.HasDependency(t1.ID) {
 		t.Error("expected dependency to be present after AddDep")
+	}
+
+	// t1 must remain intact after modifying t2's deps.
+	got1, err = s.Get(t1.ID)
+	if err != nil {
+		t.Fatalf("Get t1 after AddDep: %v", err)
+	}
+	if got1.ID != t1.ID {
+		t.Errorf("t1 corrupted after AddDep: got id=%q", got1.ID)
 	}
 
 	if err := s.RemoveDep(t2.ID, t1.ID); err != nil {

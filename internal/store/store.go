@@ -68,11 +68,11 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 		if line == "" {
 			continue
 		}
-		var t task.Task
-		if err := json.Unmarshal([]byte(line), &t); err != nil {
+		t := new(task.Task)
+		if err := json.Unmarshal([]byte(line), t); err != nil {
 			return nil, fmt.Errorf("parsing tasks file line %d: %w", lineNum, err)
 		}
-		tasks = append(tasks, &t)
+		tasks = append(tasks, t)
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("reading tasks file: %w", err)
@@ -80,19 +80,41 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 	return tasks, nil
 }
 
-// saveAll overwrites the JSONL file with the given task slice.
+// saveAll atomically replaces the JSONL file with the given task slice by
+// writing to a temp file in the same directory and renaming it into place.
 func (s *Store) saveAll(tasks []*task.Task) error {
-	f, err := os.Create(s.tasksPath())
-	if err != nil {
-		return fmt.Errorf("creating tasks file: %w", err)
-	}
-	defer f.Close()
+	tasksPath := s.tasksPath()
+	dir := filepath.Dir(tasksPath)
 
-	enc := json.NewEncoder(f)
+	tmpFile, err := os.CreateTemp(dir, "tasks-*.jsonl")
+	if err != nil {
+		return fmt.Errorf("creating temp tasks file: %w", err)
+	}
+	tmpName := tmpFile.Name()
+
+	enc := json.NewEncoder(tmpFile)
 	for _, t := range tasks {
 		if err := enc.Encode(t); err != nil {
+			tmpFile.Close()
+			_ = os.Remove(tmpName)
 			return fmt.Errorf("writing task %s: %w", t.ID, err)
 		}
+	}
+
+	if err := tmpFile.Sync(); err != nil {
+		tmpFile.Close()
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("syncing temp tasks file: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("closing temp tasks file: %w", err)
+	}
+
+	if err := os.Rename(tmpName, tasksPath); err != nil {
+		_ = os.Remove(tmpName)
+		return fmt.Errorf("replacing tasks file: %w", err)
 	}
 	return nil
 }
@@ -135,12 +157,15 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 		return nil, fmt.Errorf("creating docs directory: %w", err)
 	}
 
-	if err := os.WriteFile(s.docPath(t.DocHash), []byte(detail), 0o644); err != nil {
+	docPath := s.docPath(t.DocHash)
+	if err := os.WriteFile(docPath, []byte(detail), 0o644); err != nil {
 		return nil, fmt.Errorf("writing detail file: %w", err)
 	}
 
 	tasks = append(tasks, t)
 	if err := s.saveAll(tasks); err != nil {
+		// Best-effort cleanup of the orphaned detail file.
+		_ = os.Remove(docPath)
 		return nil, err
 	}
 	return t, nil
