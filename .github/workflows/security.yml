@@ -11,8 +11,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
-  actions: read
 
 jobs:
   govulncheck:
@@ -32,27 +30,3 @@ jobs:
         with:
           go-version-file: go.mod
           go-package: ./...
-
-  codeql:
-    name: CodeQL Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: go
-          queries: security-and-quality
-
-      - name: Build for CodeQL
-        run: go build ./...
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:go"

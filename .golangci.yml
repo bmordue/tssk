@@ -7,13 +7,12 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  govet:
-    enable:
-      - shadow
+  settings:
+    errcheck:
+      check-type-assertions: true
+    govet:
+      enable:
+        - shadow
 
 issues:
   max-issues-per-linter: 50
