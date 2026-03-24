@@ -159,7 +159,7 @@ This phase covers the work already committed to the repository plus the items ne
 | Security review and dependency audit | High | 3 days |
 
 **Technical milestones**
-- Integration test suite covers all commands with ≥ 80 % path coverage.
+- Integration test suite covers all commands with ≥ 80% path coverage.
 - `tssk edit <id>` command implemented and tested.
 - Shell completions generated and documented.
 
@@ -200,8 +200,8 @@ This phase covers the work already committed to the repository plus the items ne
 
 **Success metrics**
 - Zero open P0 bugs at GA.
-- Documentation covers 100 % of public commands.
-- Binary size < 20 MB.
+- Documentation covers 100% of public commands.
+- Binary size < 15 MB.
 - Install-to-first-task time < 2 minutes (measured against documented quick-start).
 
 **Review point:** 2026-09-30 (GA release)
