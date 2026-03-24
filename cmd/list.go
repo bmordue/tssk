@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/bmordue/tssk/internal/store"
 	"github.com/bmordue/tssk/internal/task"
 )
 
@@ -28,7 +27,10 @@ var listCmd = &cobra.Command{
 			statusFilter = &s
 		}
 
-		st := store.New(projectRoot())
+		st, err := openStore()
+		if err != nil {
+			return err
+		}
 		tasks, err := st.LoadAll()
 		if err != nil {
 			return err

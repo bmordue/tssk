@@ -18,7 +18,10 @@ var showCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
-		s := store.New(projectRoot())
+		s, err := openStore()
+		if err != nil {
+			return err
+		}
 
 		t, err := s.Get(id)
 		if err != nil {

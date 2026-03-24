@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"github.com/bmordue/tssk/internal/store"
 )
 
 var (
@@ -25,7 +23,10 @@ var addCmd = &cobra.Command{
 			return fmt.Errorf("--title is required")
 		}
 
-		s := store.New(projectRoot())
+		s, err := openStore()
+		if err != nil {
+			return err
+		}
 		t, err := s.Add(addTitle, addDetail, addDeps)
 		if err != nil {
 			return err
