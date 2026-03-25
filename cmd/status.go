@@ -25,7 +25,10 @@ Valid status values: todo, in-progress, done, blocked`,
 			return fmt.Errorf("unknown status %q; valid values: todo, in-progress, done, blocked", args[1])
 		}
 
-		s := store.New(projectRoot())
+		s, err := openStore()
+		if err != nil {
+			return err
+		}
 		t, err := s.UpdateStatus(id, newStatus)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {

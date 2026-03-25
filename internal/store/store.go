@@ -2,11 +2,10 @@ package store
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,47 +20,50 @@ const (
 // ErrNotFound is returned when a task with the given ID cannot be located.
 var ErrNotFound = errors.New("task not found")
 
-// Store manages persistence of tasks in a JSONL metadata file and
-// content-addressed markdown detail files.
+// Store manages persistence of tasks using a pluggable Backend.
+// All high-level task operations (Add, Get, UpdateStatus, …) are implemented
+// here; raw I/O is delegated to the Backend.
 type Store struct {
-	root string // project root directory
+	backend Backend
+	metrics *Metrics
 }
 
-// New creates a Store rooted at the given directory.
+// New creates a Store backed by the local filesystem rooted at root.
+// It is equivalent to NewWithBackend(NewLocalBackend(root)).
 func New(root string) *Store {
-	return &Store{root: root}
+	return NewWithBackend(NewLocalBackend(root))
 }
 
-// tasksPath returns the absolute path to the JSONL metadata file.
-func (s *Store) tasksPath() string {
-	return filepath.Join(s.root, tasksFile)
+// NewWithBackend creates a Store that uses the supplied Backend for all I/O.
+func NewWithBackend(b Backend) *Store {
+	return &Store{backend: b}
 }
 
-// docPath returns the absolute path to the markdown detail file for a task.
-func (s *Store) docPath(docHash string) string {
-	return filepath.Join(s.root, docsDir, docHash+".md")
+// HealthCheck delegates to the underlying Backend's HealthCheck.
+func (s *Store) HealthCheck() error {
+	return s.backend.HealthCheck()
 }
 
-// ensureDocsDir creates the docs directory if it does not already exist.
-func (s *Store) ensureDocsDir() error {
-	return os.MkdirAll(filepath.Join(s.root, docsDir), 0o755)
+// Metrics returns the metrics collector associated with this Store, or nil
+// when the Store was not created via NewFromConfig (i.e. no MeteredBackend).
+func (s *Store) Metrics() *Metrics {
+	return s.metrics
 }
 
-// LoadAll reads all tasks from the JSONL file.  Returns an empty slice if the
-// file does not exist yet.
+// LoadAll reads all tasks from the backend.  Returns an empty slice when
+// the store is empty or has not been initialised yet.
 func (s *Store) LoadAll() ([]*task.Task, error) {
-	f, err := os.Open(s.tasksPath())
+	data, err := s.backend.ReadTasksData()
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return []*task.Task{}, nil
-		}
-		return nil, fmt.Errorf("opening tasks file: %w", err)
+		return nil, fmt.Errorf("loading tasks: %w", err)
 	}
-	defer func() { _ = f.Close() }()
+	if len(data) == 0 {
+		return []*task.Task{}, nil
+	}
 
 	var tasks []*task.Task
-	scanner := bufio.NewScanner(f)
 	lineNum := 0
+	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		lineNum++
 		line := strings.TrimSpace(scanner.Text())
@@ -70,51 +72,27 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 		}
 		t := new(task.Task)
 		if err := json.Unmarshal([]byte(line), t); err != nil {
-			return nil, fmt.Errorf("parsing tasks file line %d: %w", lineNum, err)
+			return nil, fmt.Errorf("parsing tasks line %d: %w", lineNum, err)
 		}
 		tasks = append(tasks, t)
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("reading tasks file: %w", err)
+		return nil, fmt.Errorf("scanning tasks data: %w", err)
 	}
 	return tasks, nil
 }
 
-// saveAll atomically replaces the JSONL file with the given task slice by
-// writing to a temp file in the same directory and renaming it into place.
+// saveAll serialises the task slice as JSONL and persists it via the backend.
 func (s *Store) saveAll(tasks []*task.Task) error {
-	tasksPath := s.tasksPath()
-	dir := filepath.Dir(tasksPath)
-
-	tmpFile, err := os.CreateTemp(dir, "tasks-*.jsonl")
-	if err != nil {
-		return fmt.Errorf("creating temp tasks file: %w", err)
-	}
-	tmpName := tmpFile.Name()
-
-	enc := json.NewEncoder(tmpFile)
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
 	for _, t := range tasks {
 		if err := enc.Encode(t); err != nil {
-			_ = tmpFile.Close()
-			_ = os.Remove(tmpName)
-			return fmt.Errorf("writing task %s: %w", t.ID, err)
+			return fmt.Errorf("serialising task %s: %w", t.ID, err)
 		}
 	}
-
-	if err := tmpFile.Sync(); err != nil {
-		_ = tmpFile.Close()
-		_ = os.Remove(tmpName)
-		return fmt.Errorf("syncing temp tasks file: %w", err)
-	}
-
-	if err := tmpFile.Close(); err != nil {
-		_ = os.Remove(tmpName)
-		return fmt.Errorf("closing temp tasks file: %w", err)
-	}
-
-	if err := os.Rename(tmpName, tasksPath); err != nil {
-		_ = os.Remove(tmpName)
-		return fmt.Errorf("replacing tasks file: %w", err)
+	if err := s.backend.WriteTasksData(buf.Bytes()); err != nil {
+		return fmt.Errorf("saving tasks: %w", err)
 	}
 	return nil
 }
@@ -133,8 +111,8 @@ func (s *Store) Get(id string) (*task.Task, error) {
 	return nil, fmt.Errorf("%w: %s", ErrNotFound, id)
 }
 
-// Add creates a new task with the given title and detail text, persists its
-// metadata to the JSONL file, and writes the detail markdown file.
+// Add creates a new task with the given title and detail text, writes the
+// detail markdown via the backend, and appends the task metadata.
 func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 	tasks, err := s.LoadAll()
 	if err != nil {
@@ -153,19 +131,17 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 		return nil, fmt.Errorf("computing doc hash: %w", err)
 	}
 
-	if err := s.ensureDocsDir(); err != nil {
-		return nil, fmt.Errorf("creating docs directory: %w", err)
-	}
-
-	docPath := s.docPath(t.DocHash)
-	if err := os.WriteFile(docPath, []byte(detail), 0o644); err != nil {
-		return nil, fmt.Errorf("writing detail file: %w", err)
+	if err := s.backend.WriteDetail(t.DocHash, []byte(detail)); err != nil {
+		return nil, fmt.Errorf("writing detail: %w", err)
 	}
 
 	tasks = append(tasks, t)
 	if err := s.saveAll(tasks); err != nil {
-		// Best-effort cleanup of the orphaned detail file.
-		_ = os.Remove(docPath)
+		// Best-effort rollback: remove the detail we just wrote to avoid
+		// leaving it orphaned while the task list does not reference it.
+		if derr := s.backend.DeleteDetail(t.DocHash); derr != nil {
+			return nil, fmt.Errorf("failed to save tasks: %w; rollback also failed: %v", err, derr)
+		}
 		return nil, err
 	}
 	return t, nil
@@ -248,11 +224,11 @@ func (s *Store) RemoveDep(id, depID string) error {
 
 // ReadDetail returns the markdown detail text for a task.
 func (s *Store) ReadDetail(t *task.Task) (string, error) {
-	b, err := os.ReadFile(s.docPath(t.DocHash))
+	data, err := s.backend.ReadDetail(t.DocHash)
 	if err != nil {
-		return "", fmt.Errorf("reading detail file: %w", err)
+		return "", fmt.Errorf("reading detail: %w", err)
 	}
-	return string(b), nil
+	return string(data), nil
 }
 
 // generateID produces the next sequential task ID (T-1, T-2, …).

@@ -23,7 +23,10 @@ var depsAddCmd = &cobra.Command{
 	Short: "Add a dependency to a task",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		s := store.New(projectRoot())
+		s, err := openStore()
+		if err != nil {
+			return err
+		}
 		if err := s.AddDep(args[0], args[1]); err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				return fmt.Errorf("task %s not found", args[0])
@@ -40,7 +43,10 @@ var depsRemoveCmd = &cobra.Command{
 	Short: "Remove a dependency from a task",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		s := store.New(projectRoot())
+		s, err := openStore()
+		if err != nil {
+			return err
+		}
 		if err := s.RemoveDep(args[0], args[1]); err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				return fmt.Errorf("task %s not found", args[0])
@@ -59,7 +65,10 @@ var depsCheckCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
-		s := store.New(projectRoot())
+		s, err := openStore()
+		if err != nil {
+			return err
+		}
 
 		t, err := s.Get(id)
 		if err != nil {
