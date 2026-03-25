@@ -173,9 +173,9 @@ func TestS3Backend_HealthCheckFails(t *testing.T) {
 	}
 }
 
-// TestS3BackendIntegration exercises a full Store workflow via the S3 backend
+// TestS3BackendMockWorkflow exercises a full Store workflow via the S3 backend
 // using a mock S3 client.
-func TestS3BackendIntegration(t *testing.T) {
+func TestS3BackendMockWorkflow(t *testing.T) {
 	mock := newMockS3()
 	cfg := S3Config{Bucket: "bucket"}
 	backend, err := NewS3BackendWithClient(mock, cfg, 0)
