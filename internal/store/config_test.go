@@ -206,3 +206,172 @@ func TestNewFromConfig_HealthCheck(t *testing.T) {
 		t.Errorf("HealthCheck: %v", err)
 	}
 }
+
+// writeConfigFile writes content to {dir}/.tssk.json.
+func writeConfigFile(t *testing.T, dir, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, store.ConfigFile), []byte(content), 0o644); err != nil {
+		t.Fatalf("writeConfigFile: %v", err)
+	}
+}
+
+func TestConfigFromFileAndEnv_NoFile(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(store.EnvBackend, "")
+	cfg, err := store.ConfigFromFileAndEnv(dir)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	if cfg.Backend != store.BackendLocal {
+		t.Errorf("expected local backend, got %q", cfg.Backend)
+	}
+	if cfg.Root != dir {
+		t.Errorf("unexpected root: %q", cfg.Root)
+	}
+}
+
+func TestConfigFromFileAndEnv_FileValues(t *testing.T) {
+	dir := t.TempDir()
+	writeConfigFile(t, dir, `{
+		"tasks_file": "my-tasks.jsonl",
+		"docs_dir": "my-docs",
+		"hash_length": 16
+	}`)
+	t.Setenv(store.EnvBackend, "")
+	t.Setenv(store.EnvTasksFile, "")
+	t.Setenv(store.EnvDocsDir, "")
+	t.Setenv(store.EnvHashLength, "")
+
+	cfg, err := store.ConfigFromFileAndEnv(dir)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	if cfg.TasksFile != "my-tasks.jsonl" {
+		t.Errorf("unexpected TasksFile: %q", cfg.TasksFile)
+	}
+	if cfg.DocsDir != "my-docs" {
+		t.Errorf("unexpected DocsDir: %q", cfg.DocsDir)
+	}
+	if cfg.HashLength != 16 {
+		t.Errorf("expected HashLength 16, got %d", cfg.HashLength)
+	}
+}
+
+func TestConfigFromFileAndEnv_EnvOverridesFile(t *testing.T) {
+	dir := t.TempDir()
+	writeConfigFile(t, dir, `{
+		"tasks_file": "file-tasks.jsonl",
+		"docs_dir": "file-docs",
+		"hash_length": 16
+	}`)
+	t.Setenv(store.EnvBackend, "")
+	t.Setenv(store.EnvTasksFile, "env-tasks.jsonl")
+	t.Setenv(store.EnvDocsDir, "")
+	t.Setenv(store.EnvHashLength, "32")
+
+	cfg, err := store.ConfigFromFileAndEnv(dir)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	// Env var overrides file value.
+	if cfg.TasksFile != "env-tasks.jsonl" {
+		t.Errorf("expected env TasksFile to win, got %q", cfg.TasksFile)
+	}
+	// File value used when no env var set.
+	if cfg.DocsDir != "file-docs" {
+		t.Errorf("expected file DocsDir, got %q", cfg.DocsDir)
+	}
+	// Env var overrides file hash length.
+	if cfg.HashLength != 32 {
+		t.Errorf("expected env HashLength 32, got %d", cfg.HashLength)
+	}
+}
+
+func TestConfigFromFileAndEnv_InvalidJSON(t *testing.T) {
+	dir := t.TempDir()
+	writeConfigFile(t, dir, `not valid json`)
+	_, err := store.ConfigFromFileAndEnv(dir)
+	if err == nil {
+		t.Fatal("expected error for invalid JSON in config file")
+	}
+}
+
+func TestConfigFromFileAndEnv_InvalidHashLengthInFile(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv(store.EnvHashLength, "")
+	// 65 is out of range and should be rejected.
+	writeConfigFile(t, dir, `{"hash_length": 65}`)
+	_, err := store.ConfigFromFileAndEnv(dir)
+	if err == nil {
+		t.Fatal("expected error for hash_length 65 in config file")
+	}
+	// -1 is also out of range (JSON allows negative integers).
+	writeConfigFile(t, dir, `{"hash_length": -1}`)
+	_, err = store.ConfigFromFileAndEnv(dir)
+	if err == nil {
+		t.Fatal("expected error for hash_length -1 in config file")
+	}
+}
+
+func TestConfigFromFileAndEnv_BackendFromFile(t *testing.T) {
+	dir := t.TempDir()
+	writeConfigFile(t, dir, `{"backend": "local"}`)
+	t.Setenv(store.EnvBackend, "")
+	cfg, err := store.ConfigFromFileAndEnv(dir)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	if cfg.Backend != store.BackendLocal {
+		t.Errorf("expected local backend from file, got %q", cfg.Backend)
+	}
+}
+
+func TestConfigFromFileAndEnv_EnvOverridesFileBackend(t *testing.T) {
+	dir := t.TempDir()
+	// File says local, env says... (s3 would fail without bucket; just use local as override too
+	// to verify the env var is actually consulted; use an unknown value to expect the right error).
+	writeConfigFile(t, dir, `{"backend": "local"}`)
+	t.Setenv(store.EnvBackend, "redis")
+	_, err := store.ConfigFromFileAndEnv(dir)
+	if err == nil {
+		t.Fatal("expected error for unknown backend from env override")
+	}
+}
+
+func TestConfigFromFileAndEnv_FileUsedForStore(t *testing.T) {
+	dir := t.TempDir()
+	writeConfigFile(t, dir, `{
+		"tasks_file": "custom-tasks.jsonl",
+		"docs_dir": "custom-docs",
+		"hash_length": 8
+	}`)
+	t.Setenv(store.EnvBackend, "")
+	t.Setenv(store.EnvTasksFile, "")
+	t.Setenv(store.EnvDocsDir, "")
+	t.Setenv(store.EnvHashLength, "")
+
+	cfg, err := store.ConfigFromFileAndEnv(dir)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	s, err := store.NewFromConfig(cfg)
+	if err != nil {
+		t.Fatalf("NewFromConfig: %v", err)
+	}
+	task, err := s.Add("File config task", "some detail", nil)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	// Hash length from file should be used.
+	if len(task.DocHash) != 8 {
+		t.Errorf("expected DocHash length 8, got %d: %s", len(task.DocHash), task.DocHash)
+	}
+	// Custom tasks file should have been created.
+	if _, err := os.Stat(filepath.Join(dir, "custom-tasks.jsonl")); err != nil {
+		t.Errorf("expected custom-tasks.jsonl: %v", err)
+	}
+	// Custom docs dir should have been created.
+	if _, err := os.Stat(filepath.Join(dir, "custom-docs", task.DocHash+".md")); err != nil {
+		t.Errorf("expected detail file in custom-docs: %v", err)
+	}
+}

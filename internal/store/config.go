@@ -1,8 +1,11 @@
 package store
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -30,6 +33,11 @@ const (
 	// SHA-256 hash when naming task detail files.  Must be between 1 and 64.
 	// Defaults to 64 (full hash).
 	EnvHashLength = "TSSK_HASH_LENGTH"
+
+	// ConfigFile is the name of the optional JSON configuration file read
+	// from the project root directory.  Environment variables always take
+	// precedence over values in this file.
+	ConfigFile = ".tssk.json"
 )
 
 // BackendType identifies a storage backend implementation.
@@ -108,6 +116,130 @@ func ConfigFromEnv(root string) (*Config, error) {
 			Endpoint:       os.Getenv(EnvS3Endpoint),
 			Region:         os.Getenv(EnvS3Region),
 			RequestTimeout: timeout,
+		}
+	default:
+		return nil, fmt.Errorf("unknown storage backend %q (valid values: local, s3)", cfg.Backend)
+	}
+
+	return cfg, nil
+}
+
+// fileConfig is the on-disk JSON representation of tssk configuration.
+// All fields are optional; absent fields fall back to built-in defaults,
+// which may be further overridden by environment variables.
+type fileConfig struct {
+	Backend    string       `json:"backend,omitempty"`
+	TasksFile  string       `json:"tasks_file,omitempty"`
+	DocsDir    string       `json:"docs_dir,omitempty"`
+	HashLength int          `json:"hash_length,omitempty"`
+	S3         *fileS3Config `json:"s3,omitempty"`
+}
+
+// fileS3Config is the S3 sub-section of the JSON config file.
+type fileS3Config struct {
+	Bucket     string `json:"bucket,omitempty"`
+	Prefix     string `json:"prefix,omitempty"`
+	Endpoint   string `json:"endpoint,omitempty"`
+	Region     string `json:"region,omitempty"`
+	TimeoutSec int    `json:"timeout_sec,omitempty"`
+}
+
+// loadFileConfig reads and parses the JSON config file at path.
+// Returns (nil, nil) when the file does not exist.
+func loadFileConfig(path string) (*fileConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading config file %q: %w", path, err)
+	}
+	var fc fileConfig
+	if err := json.Unmarshal(data, &fc); err != nil {
+		return nil, fmt.Errorf("parsing config file %q (check for invalid JSON syntax or unexpected field types): %w", path, err)
+	}
+	return &fc, nil
+}
+
+// ConfigFromFileAndEnv builds a Config by first reading the optional JSON
+// config file at {root}/.tssk.json and then overlaying environment-variable
+// overrides.  Environment variables always take precedence over file values.
+func ConfigFromFileAndEnv(root string) (*Config, error) {
+	fileCfg, err := loadFileConfig(filepath.Join(root, ConfigFile))
+	if err != nil {
+		return nil, err
+	}
+
+	// Seed defaults from the config file (if present).
+	cfg := &Config{Root: root}
+	if fileCfg != nil {
+		cfg.Backend = BackendType(fileCfg.Backend)
+		cfg.TasksFile = fileCfg.TasksFile
+		cfg.DocsDir = fileCfg.DocsDir
+		if fileCfg.HashLength != 0 {
+			if fileCfg.HashLength < 1 || fileCfg.HashLength > 64 {
+				return nil, fmt.Errorf("invalid hash_length %d in config file: must be between 1 and 64", fileCfg.HashLength)
+			}
+			cfg.HashLength = fileCfg.HashLength
+		}
+		if fileCfg.S3 != nil {
+			cfg.S3.Bucket = fileCfg.S3.Bucket
+			cfg.S3.Prefix = fileCfg.S3.Prefix
+			cfg.S3.Endpoint = fileCfg.S3.Endpoint
+			cfg.S3.Region = fileCfg.S3.Region
+			if fileCfg.S3.TimeoutSec > 0 {
+				cfg.S3.RequestTimeout = time.Duration(fileCfg.S3.TimeoutSec) * time.Second
+			}
+		}
+	}
+
+	// Apply env var overrides – env vars always win.
+	if s := os.Getenv(EnvBackend); s != "" {
+		cfg.Backend = BackendType(s)
+	}
+	if cfg.Backend == "" {
+		cfg.Backend = BackendLocal
+	}
+
+	if s := os.Getenv(EnvTasksFile); s != "" {
+		cfg.TasksFile = s
+	}
+	if s := os.Getenv(EnvDocsDir); s != "" {
+		cfg.DocsDir = s
+	}
+	if s := os.Getenv(EnvHashLength); s != "" {
+		n, err := strconv.Atoi(s)
+		if err != nil || n < 1 || n > 64 {
+			return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvHashLength, s)
+		}
+		cfg.HashLength = n
+	}
+
+	switch cfg.Backend {
+	case BackendLocal:
+		// Nothing extra to parse.
+	case BackendS3:
+		if s := os.Getenv(EnvS3Bucket); s != "" {
+			cfg.S3.Bucket = s
+		}
+		if s := os.Getenv(EnvS3Prefix); s != "" {
+			cfg.S3.Prefix = s
+		}
+		if s := os.Getenv(EnvS3Endpoint); s != "" {
+			cfg.S3.Endpoint = s
+		}
+		if s := os.Getenv(EnvS3Region); s != "" {
+			cfg.S3.Region = s
+		}
+		if s := os.Getenv(EnvS3TimeoutSec); s != "" {
+			secs, err := strconv.Atoi(s)
+			if err != nil || secs <= 0 {
+				return nil, fmt.Errorf("invalid %s value %q: must be a positive integer", EnvS3TimeoutSec, s)
+			}
+			cfg.S3.RequestTimeout = time.Duration(secs) * time.Second
+		}
+		if cfg.S3.RequestTimeout <= 0 {
+			cfg.S3.RequestTimeout = 30 * time.Second
 		}
 	default:
 		return nil, fmt.Errorf("unknown storage backend %q (valid values: local, s3)", cfg.Backend)
