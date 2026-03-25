@@ -20,6 +20,16 @@ const (
 	EnvS3Region = "TSSK_S3_REGION"
 	// EnvS3TimeoutSec overrides the per-request timeout in seconds.
 	EnvS3TimeoutSec = "TSSK_S3_TIMEOUT_SEC"
+	// EnvTasksFile overrides the path/filename of the tasks JSONL file
+	// (relative to root for the local backend, or an absolute path).
+	EnvTasksFile = "TSSK_TASKS_FILE"
+	// EnvDocsDir overrides the path to the directory containing task detail
+	// files (relative to root for the local backend, or an absolute path).
+	EnvDocsDir = "TSSK_DOCS_DIR"
+	// EnvHashLength sets the number of hex characters to use from the
+	// SHA-256 hash when naming task detail files.  Must be between 1 and 64.
+	// Defaults to 64 (full hash).
+	EnvHashLength = "TSSK_HASH_LENGTH"
 )
 
 // BackendType identifies a storage backend implementation.
@@ -36,6 +46,19 @@ type Config struct {
 	Backend BackendType
 	// Root is the local filesystem root used by the local backend.
 	Root string
+	// TasksFile is the path/filename of the tasks JSONL file.  For the local
+	// backend this may be relative to Root or an absolute path.  For the S3
+	// backend it is used as the object key relative to Prefix.
+	// Defaults to "tasks.jsonl" when empty.
+	TasksFile string
+	// DocsDir is the directory that contains task detail markdown files.  For
+	// the local backend this may be relative to Root or an absolute path.
+	// For the S3 backend it is used as a key prefix relative to Prefix.
+	// Defaults to "docs" when empty.
+	DocsDir string
+	// HashLength is the number of hex characters taken from the SHA-256 hash
+	// when naming task detail files.  Valid range: 1–64.  Defaults to 64.
+	HashLength int
 	// S3 holds S3-specific configuration (used when Backend == BackendS3).
 	S3 S3Config
 }
@@ -51,6 +74,20 @@ func ConfigFromEnv(root string) (*Config, error) {
 	cfg := &Config{
 		Backend: BackendType(backendStr),
 		Root:    root,
+	}
+
+	if s := os.Getenv(EnvTasksFile); s != "" {
+		cfg.TasksFile = s
+	}
+	if s := os.Getenv(EnvDocsDir); s != "" {
+		cfg.DocsDir = s
+	}
+	if s := os.Getenv(EnvHashLength); s != "" {
+		n, err := strconv.Atoi(s)
+		if err != nil || n < 1 || n > 64 {
+			return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvHashLength, s)
+		}
+		cfg.HashLength = n
 	}
 
 	switch cfg.Backend {
@@ -88,12 +125,27 @@ func NewFromConfig(cfg *Config) (*Store, error) {
 
 	switch cfg.Backend {
 	case BackendLocal, "":
-		backend = NewLocalBackend(cfg.Root)
+		lb := NewLocalBackend(cfg.Root)
+		if cfg.TasksFile != "" {
+			lb.tasksFile = cfg.TasksFile
+		}
+		if cfg.DocsDir != "" {
+			lb.docsDir = cfg.DocsDir
+		}
+		backend = lb
 	case BackendS3:
-		backend, err = NewS3Backend(cfg.S3)
+		var sb *S3Backend
+		sb, err = NewS3Backend(cfg.S3)
 		if err != nil {
 			return nil, fmt.Errorf("initialising s3 backend: %w", err)
 		}
+		if cfg.TasksFile != "" {
+			sb.tasksFile = cfg.TasksFile
+		}
+		if cfg.DocsDir != "" {
+			sb.docsDir = cfg.DocsDir
+		}
+		backend = sb
 	default:
 		return nil, fmt.Errorf("unknown storage backend %q", cfg.Backend)
 	}
@@ -106,5 +158,8 @@ func NewFromConfig(cfg *Config) (*Store, error) {
 
 	s := NewWithBackend(backend)
 	s.metrics = m
+	if cfg.HashLength > 0 {
+		s.hashLength = cfg.HashLength
+	}
 	return s, nil
 }
