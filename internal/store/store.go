@@ -137,6 +137,12 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 
 	tasks = append(tasks, t)
 	if err := s.saveAll(tasks); err != nil {
+		// Best-effort rollback of the written detail to avoid leaving it orphaned.
+		if deleter, ok := s.backend.(interface{ DeleteDetail(string) error }); ok {
+			if derr := deleter.DeleteDetail(t.DocHash); derr != nil {
+				return nil, fmt.Errorf("saving tasks: %w (also failed to roll back detail: %v)", err, derr)
+			}
+		}
 		// Best-effort rollback: remove the detail we just wrote to avoid
 		// leaving it orphaned while the task list does not reference it.
 		if derr := s.backend.DeleteDetail(t.DocHash); derr != nil {
