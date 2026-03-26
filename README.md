@@ -40,10 +40,10 @@ Default `.tssk.json` content:
 
 ```json
 {
-	"backend": "local",
-	"tasks_file": "tasks.jsonl",
-	"docs_dir": "docs",
-	"hash_length": 64
+  "backend": "local",
+  "tasks_file": "tasks.jsonl",
+  "docs_dir": "docs",
+  "hash_length": 64
 }
 ```
 

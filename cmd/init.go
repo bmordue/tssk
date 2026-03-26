@@ -18,22 +18,29 @@ var initCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configPath := filepath.Join(projectRoot(), store.ConfigFile)
 
-		if _, err := os.Stat(configPath); err == nil {
-			fmt.Fprintf(os.Stdout, "Config file already exists at %s\n", configPath)
-			return nil
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("checking config file %q: %w", configPath, err)
-		}
-
 		content, err := store.DefaultConfigFileContent()
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(configPath, content, 0o644); err != nil {
+
+		f, err := os.OpenFile(configPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+		if err != nil {
+			if errors.Is(err, os.ErrExist) {
+				fmt.Fprintf(os.Stdout, "Config file already exists at %s\n", configPath)
+				return nil
+			}
+			if fi, statErr := os.Stat(configPath); statErr == nil && fi.Mode().IsDir() {
+				return fmt.Errorf("config path %q is a directory, not a regular file", configPath)
+			}
+			return fmt.Errorf("creating config file %q: %w", configPath, err)
+		}
+		defer f.Close()
+
+		if _, err := f.Write(content); err != nil {
 			return fmt.Errorf("writing config file %q: %w", configPath, err)
 		}
 
-		fmt.Fprintf(os.Stdout, "Wrote default config to %s\n", configPath)
+fmt.Fprintf(os.Stderr, "Wrote default config to %s\n", configPath)
 		return nil
 	},
 }

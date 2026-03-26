@@ -148,9 +148,9 @@ type fileS3Config struct {
 func DefaultConfigFileContent() ([]byte, error) {
 	fc := fileConfig{
 		Backend:    string(BackendLocal),
-		TasksFile:  "tasks.jsonl",
-		DocsDir:    "docs",
-		HashLength: 64,
+		TasksFile:  defaultTasksFile,
+		DocsDir:    defaultDocsDir,
+		HashLength: defaultHashLength,
 	}
 	b, err := json.MarshalIndent(fc, "", "  ")
 	if err != nil {
