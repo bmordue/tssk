@@ -85,6 +85,14 @@ tssk deps remove T-2 T-1
 tssk deps check T-2
 ```
 
+### Initialize configuration
+
+```bash
+tssk init
+```
+
+Creates a default config file if it does not already exist. If the file is already present, `tssk init` prints a message and leaves it unchanged.
+
 ## Storage
 
 Tasks are stored relative to the project root:
@@ -99,6 +107,12 @@ By default, tssk uses the current working directory as the project root. Set the
 ```bash
 TSSK_ROOT=/path/to/project tssk list
 ```
+
+`tssk init` writes the default config file to:
+
+- `$XDG_CONFIG_HOME/tssk/config.env` (or `~/.config/tssk/config.env` when `XDG_CONFIG_HOME` is not set)
+
+Set `TSSK_CONFIG_FILE` to override the config file path used by `tssk init`.
 
 ## Development
 
