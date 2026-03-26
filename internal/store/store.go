@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	tasksFile = "tasks.jsonl"
-	docsDir   = "docs"
+	defaultTasksFile  = "tasks.jsonl"
+	defaultDocsDir    = "docs"
+	defaultHashLength = 64
 )
 
 // ErrNotFound is returned when a task with the given ID cannot be located.
@@ -24,8 +25,9 @@ var ErrNotFound = errors.New("task not found")
 // All high-level task operations (Add, Get, UpdateStatus, …) are implemented
 // here; raw I/O is delegated to the Backend.
 type Store struct {
-	backend Backend
-	metrics *Metrics
+	backend    Backend
+	metrics    *Metrics
+	hashLength int
 }
 
 // New creates a Store backed by the local filesystem rooted at root.
@@ -36,7 +38,7 @@ func New(root string) *Store {
 
 // NewWithBackend creates a Store that uses the supplied Backend for all I/O.
 func NewWithBackend(b Backend) *Store {
-	return &Store{backend: b}
+	return &Store{backend: b, hashLength: defaultHashLength}
 }
 
 // HealthCheck delegates to the underlying Backend's HealthCheck.
@@ -127,7 +129,7 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 		CreatedAt:    time.Now().UTC(),
 	}
 
-	if err := t.ComputeDocHash(); err != nil {
+	if err := t.ComputeDocHashN(s.hashLength); err != nil {
 		return nil, fmt.Errorf("computing doc hash: %w", err)
 	}
 
