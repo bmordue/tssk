@@ -144,6 +144,22 @@ type fileS3Config struct {
 	TimeoutSec int    `json:"timeout_sec,omitempty"`
 }
 
+// DefaultConfigFileContent returns the default JSON content for .tssk.json.
+func DefaultConfigFileContent() ([]byte, error) {
+	fc := fileConfig{
+		Backend:    string(BackendLocal),
+		TasksFile:  defaultTasksFile,
+		DocsDir:    defaultDocsDir,
+		HashLength: defaultHashLength,
+	}
+	b, err := json.MarshalIndent(fc, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshalling default config: %w", err)
+	}
+	b = append(b, '\n')
+	return b, nil
+}
+
 // loadFileConfig reads and parses the JSON config file at path.
 // Returns (nil, nil) when the file does not exist.
 func loadFileConfig(path string) (*fileConfig, error) {

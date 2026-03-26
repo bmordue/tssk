@@ -1,12 +1,38 @@
 package store_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/bmordue/tssk/internal/store"
 )
+
+func TestDefaultConfigFileContent(t *testing.T) {
+	b, err := store.DefaultConfigFileContent()
+	if err != nil {
+		t.Fatalf("DefaultConfigFileContent: %v", err)
+	}
+
+	var raw map[string]any
+	if err := json.Unmarshal(b, &raw); err != nil {
+		t.Fatalf("json unmarshal: %v", err)
+	}
+
+	if got, ok := raw["backend"].(string); !ok || got != "local" {
+		t.Errorf("expected backend=local, got %#v", raw["backend"])
+	}
+	if got, ok := raw["tasks_file"].(string); !ok || got != "tasks.jsonl" {
+		t.Errorf("expected tasks_file=tasks.jsonl, got %#v", raw["tasks_file"])
+	}
+	if got, ok := raw["docs_dir"].(string); !ok || got != "docs" {
+		t.Errorf("expected docs_dir=docs, got %#v", raw["docs_dir"])
+	}
+	if got, ok := raw["hash_length"].(float64); !ok || int(got) != 64 {
+		t.Errorf("expected hash_length=64, got %#v", raw["hash_length"])
+	}
+}
 
 func TestConfigFromEnv_DefaultsToLocal(t *testing.T) {
 	t.Setenv(store.EnvBackend, "")
