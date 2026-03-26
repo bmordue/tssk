@@ -27,6 +27,26 @@ mv tssk /usr/local/bin/
 
 ## Usage
 
+### Initialize config
+
+```bash
+tssk init
+```
+
+Writes a default `.tssk.json` in the project root when it does not exist.
+If the file already exists, `tssk` prints a message and leaves it unchanged.
+
+Default `.tssk.json` content:
+
+```json
+{
+	"backend": "local",
+	"tasks_file": "tasks.jsonl",
+	"docs_dir": "docs",
+	"hash_length": 64
+}
+```
+
 ### Add a task
 
 ```bash
@@ -98,6 +118,12 @@ By default, tssk uses the current working directory as the project root. Set the
 
 ```bash
 TSSK_ROOT=/path/to/project tssk list
+```
+
+You can create a default config file with:
+
+```bash
+tssk init
 ```
 
 ## Development
