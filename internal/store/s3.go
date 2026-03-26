@@ -209,7 +209,7 @@ func (b *S3Backend) WriteTasksData(data []byte) error {
 
 // ReadDetail returns the markdown detail content for the given docHash.
 func (b *S3Backend) ReadDetail(docHash string) ([]byte, error) {
-	rel := b.docsDir + "/" + docHash + ".md"
+	rel := path.Join(b.docsDir, docHash+".md")
 	data, err := b.getObject(b.key(rel))
 	if err != nil {
 		return nil, fmt.Errorf("s3 backend ReadDetail: %w", err)
