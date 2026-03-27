@@ -34,10 +34,14 @@ var initCmd = &cobra.Command{
 			}
 			return fmt.Errorf("creating config file %q: %w", configPath, err)
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		if _, err := f.Write(content); err != nil {
 			return fmt.Errorf("writing config file %q: %w", configPath, err)
+		}
+
+		if err := f.Close(); err != nil {
+			return fmt.Errorf("closing config file %q: %w", configPath, err)
 		}
 
 		fmt.Fprintf(os.Stderr, "Wrote default config to %s\n", configPath)

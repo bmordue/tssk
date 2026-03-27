@@ -225,15 +225,6 @@ func (s *Store) ReadDetail(t *task.Task) (string, error) {
 	return string(data), nil
 }
 
-// displayHash returns the first displayHashLength characters of hash.
-// If hash is shorter than displayHashLength the full hash is returned.
-func (s *Store) displayHash(hash string) string {
-	if s.displayHashLength <= 0 || len(hash) <= s.displayHashLength {
-		return hash
-	}
-	return hash[:s.displayHashLength]
-}
-
 // resolveOne returns the unique task whose ID equals prefix exactly, or – if
 // no exact match exists – the unique task whose ID begins with prefix.
 // Returns ErrNotFound when no task matches, ErrAmbiguous when multiple tasks
