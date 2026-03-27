@@ -87,7 +87,7 @@ func TestLocalBackend_WriteDetailCreatesDocsDir(t *testing.T) {
 		t.Fatalf("WriteDetail: %v", err)
 	}
 
-	docPath := filepath.Join(dir, "docs", "myhash.md")
+	docPath := filepath.Join(dir, ".tsks", "docs", "myhash.md")
 	if _, err := os.Stat(docPath); err != nil {
 		t.Errorf("expected detail file at %s: %v", docPath, err)
 	}

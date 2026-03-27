@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -44,9 +45,11 @@ type S3Config struct {
 // It reuses a single *s3.Client (and its underlying http.Client connection
 // pool) for all requests.
 type S3Backend struct {
-	client  s3API
-	cfg     S3Config
-	timeout time.Duration
+	client    s3API
+	cfg       S3Config
+	timeout   time.Duration
+	tasksFile string
+	docsDir   string
 }
 
 // NewS3Backend creates an S3Backend using default AWS credential loading
@@ -127,7 +130,7 @@ func NewS3BackendWithClient(client s3API, cfg S3Config, timeout time.Duration) (
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
-	return &S3Backend{client: client, cfg: cfg, timeout: timeout}, nil
+	return &S3Backend{client: client, cfg: cfg, timeout: timeout, tasksFile: defaultTasksFile, docsDir: defaultDocsDir}, nil
 }
 
 // key returns the full S3 object key for the given relative path.
@@ -189,7 +192,7 @@ func (b *S3Backend) putObject(key string, data []byte) error {
 // ReadTasksData returns the raw JSONL content of the tasks metadata object.
 // Returns (nil, nil) when the object does not exist yet.
 func (b *S3Backend) ReadTasksData() ([]byte, error) {
-	data, err := b.getObject(b.key(tasksFile))
+	data, err := b.getObject(b.key(b.tasksFile))
 	if err != nil {
 		return nil, fmt.Errorf("s3 backend ReadTasksData: %w", err)
 	}
@@ -199,7 +202,7 @@ func (b *S3Backend) ReadTasksData() ([]byte, error) {
 // WriteTasksData replaces the tasks metadata object.
 // S3 PutObject is atomic from the reader's perspective.
 func (b *S3Backend) WriteTasksData(data []byte) error {
-	if err := b.putObject(b.key(tasksFile), data); err != nil {
+	if err := b.putObject(b.key(b.tasksFile), data); err != nil {
 		return fmt.Errorf("s3 backend WriteTasksData: %w", err)
 	}
 	return nil
@@ -207,7 +210,7 @@ func (b *S3Backend) WriteTasksData(data []byte) error {
 
 // ReadDetail returns the markdown detail content for the given docHash.
 func (b *S3Backend) ReadDetail(docHash string) ([]byte, error) {
-	rel := docsDir + "/" + docHash + ".md"
+	rel := path.Join(b.docsDir, docHash+".md")
 	data, err := b.getObject(b.key(rel))
 	if err != nil {
 		return nil, fmt.Errorf("s3 backend ReadDetail: %w", err)
@@ -220,7 +223,7 @@ func (b *S3Backend) ReadDetail(docHash string) ([]byte, error) {
 
 // WriteDetail stores the markdown detail content for the given docHash.
 func (b *S3Backend) WriteDetail(docHash string, data []byte) error {
-	rel := docsDir + "/" + docHash + ".md"
+	rel := b.docsDir + "/" + docHash + ".md"
 	if err := b.putObject(b.key(rel), data); err != nil {
 		return fmt.Errorf("s3 backend WriteDetail: %w", err)
 	}
@@ -230,7 +233,7 @@ func (b *S3Backend) WriteDetail(docHash string, data []byte) error {
 // DeleteDetail removes the detail object for the given docHash.
 // A missing object is treated as a no-op.
 func (b *S3Backend) DeleteDetail(docHash string) error {
-	rel := docsDir + "/" + docHash + ".md"
+	rel := b.docsDir + "/" + docHash + ".md"
 	ctx, cancel := b.ctx()
 	defer cancel()
 

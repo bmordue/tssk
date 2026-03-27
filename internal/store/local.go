@@ -11,24 +11,35 @@ import (
 // Files are stored under a root directory with the same layout as the
 // original Store: tasks.jsonl at the root and docs/{hash}.md for details.
 type LocalBackend struct {
-	root string
+	root      string
+	tasksFile string
+	docsDir   string
 }
 
 // NewLocalBackend creates a LocalBackend rooted at the given directory.
 func NewLocalBackend(root string) *LocalBackend {
-	return &LocalBackend{root: root}
+	return &LocalBackend{root: root, tasksFile: defaultTasksFile, docsDir: defaultDocsDir}
 }
 
 func (b *LocalBackend) tasksPath() string {
-	return filepath.Join(b.root, tasksFile)
+	if filepath.IsAbs(b.tasksFile) {
+		return b.tasksFile
+	}
+	return filepath.Join(b.root, b.tasksFile)
 }
 
 func (b *LocalBackend) docPath(docHash string) string {
-	return filepath.Join(b.root, docsDir, docHash+".md")
+	if filepath.IsAbs(b.docsDir) {
+		return filepath.Join(b.docsDir, docHash+".md")
+	}
+	return filepath.Join(b.root, b.docsDir, docHash+".md")
 }
 
 func (b *LocalBackend) ensureDocsDir() error {
-	return os.MkdirAll(filepath.Join(b.root, docsDir), 0o755)
+	if filepath.IsAbs(b.docsDir) {
+		return os.MkdirAll(b.docsDir, 0o755)
+	}
+	return os.MkdirAll(filepath.Join(b.root, b.docsDir), 0o755)
 }
 
 // ReadTasksData returns the raw content of tasks.jsonl, or (nil, nil) when
@@ -44,12 +55,21 @@ func (b *LocalBackend) ReadTasksData() ([]byte, error) {
 	return data, nil
 }
 
-// WriteTasksData atomically replaces tasks.jsonl using a temp-file rename.
+// WriteTasksData atomically replaces the tasks file using a temp-file rename.
 func (b *LocalBackend) WriteTasksData(data []byte) error {
 	tasksPath := b.tasksPath()
 	dir := filepath.Dir(tasksPath)
 
-	tmpFile, err := os.CreateTemp(dir, "tasks-*.jsonl")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("creating tasks directory: %w", err)
+	}
+
+	ext := filepath.Ext(tasksPath)
+	if ext == "" {
+		ext = defaultTasksFileExt
+	}
+
+	tmpFile, err := os.CreateTemp(dir, "tasks-*"+ext)
 	if err != nil {
 		return fmt.Errorf("creating temp tasks file: %w", err)
 	}

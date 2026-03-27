@@ -49,6 +49,15 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "The following files need formatting:"
+            echo "$unformatted"
+            exit 1
+          fi
+
       - name: Run go vet
         run: go vet ./...
 

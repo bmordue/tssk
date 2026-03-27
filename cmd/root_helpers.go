@@ -21,10 +21,13 @@ func projectRoot() string {
 	return wd
 }
 
-// openStore creates a Store configured from environment variables.
-// The storage backend is selected via TSSK_STORAGE_BACKEND (default: "local").
+// openStore creates a Store configured from the optional .tssk.json config
+// file in the project root and any environment-variable overrides.
+// Environment variables always take precedence over config file values.
+// The storage backend is selected via the "backend" key in .tssk.json or the
+// TSSK_STORAGE_BACKEND environment variable (default: "local").
 func openStore() (*store.Store, error) {
-	cfg, err := store.ConfigFromEnv(projectRoot())
+	cfg, err := store.ConfigFromFileAndEnv(projectRoot())
 	if err != nil {
 		return nil, fmt.Errorf("storage configuration: %w", err)
 	}

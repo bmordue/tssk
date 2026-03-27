@@ -7,9 +7,9 @@ import (
 
 // OperationMetrics holds counters and timing for a single operation type.
 type OperationMetrics struct {
-	Calls    atomic.Int64
-	Errors   atomic.Int64
-	TotalNs  atomic.Int64 // cumulative duration in nanoseconds
+	Calls   atomic.Int64
+	Errors  atomic.Int64
+	TotalNs atomic.Int64 // cumulative duration in nanoseconds
 }
 
 // Avg returns the average duration per call, or 0 if there have been no calls.

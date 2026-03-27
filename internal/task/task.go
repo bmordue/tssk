@@ -60,14 +60,26 @@ func (t *Task) MetaJSON() ([]byte, error) {
 	})
 }
 
-// ComputeDocHash calculates the SHA-256 hex digest of the task's metadata
-// JSON and stores it in DocHash.
+// ComputeDocHash calculates the full 64-character SHA-256 hex digest of the
+// task's metadata JSON and stores it in DocHash.
 func (t *Task) ComputeDocHash() error {
+	return t.ComputeDocHashN(0)
+}
+
+// ComputeDocHashN calculates the SHA-256 hex digest of the task's metadata
+// JSON and stores the first length characters in DocHash.  length must be
+// between 1 and 64; any value outside that range (including 0) uses the full
+// 64-character digest.
+func (t *Task) ComputeDocHashN(length int) error {
 	b, err := t.MetaJSON()
 	if err != nil {
 		return err
 	}
-	t.DocHash = fmt.Sprintf("%x", sha256.Sum256(b))
+	full := fmt.Sprintf("%x", sha256.Sum256(b))
+	if length < 1 || length > len(full) {
+		length = len(full)
+	}
+	t.DocHash = full[:length]
 	return nil
 }
 

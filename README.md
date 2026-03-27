@@ -16,7 +16,7 @@ tssk provides a lightweight task tracking system that lives alongside your code.
 Build the binary from source:
 
 ```bash
-go build -o tssk .
+go build -o build/tssk .
 ```
 
 Then move the binary to a directory on your PATH, for example:
@@ -26,6 +26,26 @@ mv tssk /usr/local/bin/
 ```
 
 ## Usage
+
+### Initialize config
+
+```bash
+tssk init
+```
+
+Writes a default `.tssk.json` in the project root when it does not exist.
+If the file already exists, `tssk` prints a message and leaves it unchanged.
+
+Default `.tssk.json` content:
+
+```json
+{
+  "backend": "local",
+  "tasks_file": "tasks.jsonl",
+  "docs_dir": "docs",
+  "hash_length": 64
+}
+```
 
 ### Add a task
 
@@ -89,8 +109,10 @@ tssk deps check T-2
 
 Tasks are stored relative to the project root:
 
-- `tasks.jsonl` - Task metadata in JSONL format, one record per line
-- `docs/` - Markdown detail files, one per task that has detail text
+- `.tsks/tasks.jsonl` - Task metadata in JSONL format, one record per line
+- `.tsks/docs/` - Markdown detail files, one per task that has detail text
+
+> **Note:** tssk does not migrate existing data when storage settings change. If you alter the tasks file path, docs directory, or backend after creating tasks, tssk will treat the new location as empty and your existing tasks will remain at the old location — invisible to tssk until you manually move them. Detail files are named using the full SHA-256 hash of the task metadata; changing the display hash length setting does not affect file naming.
 
 ## Configuration
 
@@ -98,6 +120,12 @@ By default, tssk uses the current working directory as the project root. Set the
 
 ```bash
 TSSK_ROOT=/path/to/project tssk list
+```
+
+You can create a default config file with:
+
+```bash
+tssk init
 ```
 
 ## Development
