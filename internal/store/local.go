@@ -55,12 +55,16 @@ func (b *LocalBackend) ReadTasksData() ([]byte, error) {
 	return data, nil
 }
 
-// WriteTasksData atomically replaces tasks.jsonl using a temp-file rename.
+// WriteTasksData atomically replaces the tasks file using a temp-file rename.
 func (b *LocalBackend) WriteTasksData(data []byte) error {
 	tasksPath := b.tasksPath()
 	dir := filepath.Dir(tasksPath)
 
-	tmpFile, err := os.CreateTemp(dir, "tasks-*.jsonl")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("creating tasks directory: %w", err)
+	}
+
+	tmpFile, err := os.CreateTemp(dir, "tasks-*.json")
 	if err != nil {
 		return fmt.Errorf("creating temp tasks file: %w", err)
 	}

@@ -112,6 +112,8 @@ Tasks are stored relative to the project root:
 - `tasks.jsonl` - Task metadata in JSONL format, one record per line
 - `docs/` - Markdown detail files, one per task that has detail text
 
+> **Note:** tssk does not migrate existing data when storage settings change. If you alter the tasks file path, docs directory, or backend after creating tasks, tssk will treat the new location as empty and your existing tasks will remain at the old location — invisible to tssk until you manually move them.
+
 ## Configuration
 
 By default, tssk uses the current working directory as the project root. Set the `TSSK_ROOT` environment variable to override this:

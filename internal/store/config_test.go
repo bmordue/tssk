@@ -74,23 +74,23 @@ func TestConfigFromEnv_DocsDir(t *testing.T) {
 
 func TestConfigFromEnv_HashLength(t *testing.T) {
 	t.Setenv(store.EnvBackend, "")
-	t.Setenv(store.EnvHashLength, "16")
+	t.Setenv(store.EnvDisplayHashLength, "16")
 	cfg, err := store.ConfigFromEnv("/root")
 	if err != nil {
 		t.Fatalf("ConfigFromEnv: %v", err)
 	}
-	if cfg.HashLength != 16 {
-		t.Errorf("expected HashLength 16, got %d", cfg.HashLength)
+	if cfg.DisplayHashLength != 16 {
+		t.Errorf("expected DisplayHashLength 16, got %d", cfg.DisplayHashLength)
 	}
 }
 
 func TestConfigFromEnv_HashLengthInvalid(t *testing.T) {
 	t.Setenv(store.EnvBackend, "")
 	for _, bad := range []string{"0", "65", "abc", "-1"} {
-		t.Setenv(store.EnvHashLength, bad)
+		t.Setenv(store.EnvDisplayHashLength, bad)
 		_, err := store.ConfigFromEnv("/root")
 		if err == nil {
-			t.Errorf("expected error for TSSK_HASH_LENGTH=%q", bad)
+			t.Errorf("expected error for TSSK_DISPLAY_HASH_LENGTH=%q", bad)
 		}
 	}
 }
@@ -117,17 +117,19 @@ func TestNewFromConfig_CustomTasksFileAndDocsDir(t *testing.T) {
 		t.Errorf("expected custom tasks file: %v", err)
 	}
 	// Verify the custom docs directory was created.
-	docPath := filepath.Join(dir, "custom-docs", task.DocHash+".md")
+	// DocHash is always 64 chars; filename uses first displayHashLength (default 9) chars.
+	docPath := filepath.Join(dir, "custom-docs", task.DocHash[:9]+".md")
 	if _, err := os.Stat(docPath); err != nil {
 		t.Errorf("expected detail file at %s: %v", docPath, err)
 	}
 }
 
 func TestNewFromConfig_CustomHashLength(t *testing.T) {
+	dir := t.TempDir()
 	cfg := &store.Config{
-		Backend:    store.BackendLocal,
-		Root:       t.TempDir(),
-		HashLength: 12,
+		Backend:           store.BackendLocal,
+		Root:              dir,
+		DisplayHashLength: 12,
 	}
 	s, err := store.NewFromConfig(cfg)
 	if err != nil {
@@ -137,8 +139,14 @@ func TestNewFromConfig_CustomHashLength(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	if len(task.DocHash) != 12 {
-		t.Errorf("expected DocHash length 12, got %d: %s", len(task.DocHash), task.DocHash)
+	// DocHash is always the full 64-char hash now.
+	if len(task.DocHash) != 64 {
+		t.Errorf("expected DocHash length 64, got %d: %s", len(task.DocHash), task.DocHash)
+	}
+	// Detail file should be named with the first 12 chars of DocHash.
+	docPath := filepath.Join(dir, ".tsks", "docs", task.DocHash[:12]+".md")
+	if _, err := os.Stat(docPath); err != nil {
+		t.Errorf("expected detail file at %s: %v", docPath, err)
 	}
 }
 
@@ -261,12 +269,12 @@ func TestConfigFromFileAndEnv_FileValues(t *testing.T) {
 	writeConfigFile(t, dir, `{
 		"tasks_file": "my-tasks.jsonl",
 		"docs_dir": "my-docs",
-		"hash_length": 16
+		"display_hash_length": 16
 	}`)
 	t.Setenv(store.EnvBackend, "")
 	t.Setenv(store.EnvTasksFile, "")
 	t.Setenv(store.EnvDocsDir, "")
-	t.Setenv(store.EnvHashLength, "")
+	t.Setenv(store.EnvDisplayHashLength, "")
 
 	cfg, err := store.ConfigFromFileAndEnv(dir)
 	if err != nil {
@@ -278,8 +286,8 @@ func TestConfigFromFileAndEnv_FileValues(t *testing.T) {
 	if cfg.DocsDir != "my-docs" {
 		t.Errorf("unexpected DocsDir: %q", cfg.DocsDir)
 	}
-	if cfg.HashLength != 16 {
-		t.Errorf("expected HashLength 16, got %d", cfg.HashLength)
+	if cfg.DisplayHashLength != 16 {
+		t.Errorf("expected DisplayHashLength 16, got %d", cfg.DisplayHashLength)
 	}
 }
 
@@ -288,12 +296,12 @@ func TestConfigFromFileAndEnv_EnvOverridesFile(t *testing.T) {
 	writeConfigFile(t, dir, `{
 		"tasks_file": "file-tasks.jsonl",
 		"docs_dir": "file-docs",
-		"hash_length": 16
+		"display_hash_length": 16
 	}`)
 	t.Setenv(store.EnvBackend, "")
 	t.Setenv(store.EnvTasksFile, "env-tasks.jsonl")
 	t.Setenv(store.EnvDocsDir, "")
-	t.Setenv(store.EnvHashLength, "32")
+	t.Setenv(store.EnvDisplayHashLength, "32")
 
 	cfg, err := store.ConfigFromFileAndEnv(dir)
 	if err != nil {
@@ -307,9 +315,9 @@ func TestConfigFromFileAndEnv_EnvOverridesFile(t *testing.T) {
 	if cfg.DocsDir != "file-docs" {
 		t.Errorf("expected file DocsDir, got %q", cfg.DocsDir)
 	}
-	// Env var overrides file hash length.
-	if cfg.HashLength != 32 {
-		t.Errorf("expected env HashLength 32, got %d", cfg.HashLength)
+	// Env var overrides file display hash length.
+	if cfg.DisplayHashLength != 32 {
+		t.Errorf("expected env DisplayHashLength 32, got %d", cfg.DisplayHashLength)
 	}
 }
 
@@ -324,18 +332,18 @@ func TestConfigFromFileAndEnv_InvalidJSON(t *testing.T) {
 
 func TestConfigFromFileAndEnv_InvalidHashLengthInFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv(store.EnvHashLength, "")
+	t.Setenv(store.EnvDisplayHashLength, "")
 	// 65 is out of range and should be rejected.
-	writeConfigFile(t, dir, `{"hash_length": 65}`)
+	writeConfigFile(t, dir, `{"display_hash_length": 65}`)
 	_, err := store.ConfigFromFileAndEnv(dir)
 	if err == nil {
-		t.Fatal("expected error for hash_length 65 in config file")
+		t.Fatal("expected error for display_hash_length 65 in config file")
 	}
 	// -1 is also out of range (JSON allows negative integers).
-	writeConfigFile(t, dir, `{"hash_length": -1}`)
+	writeConfigFile(t, dir, `{"display_hash_length": -1}`)
 	_, err = store.ConfigFromFileAndEnv(dir)
 	if err == nil {
-		t.Fatal("expected error for hash_length -1 in config file")
+		t.Fatal("expected error for display_hash_length -1 in config file")
 	}
 }
 
@@ -369,12 +377,12 @@ func TestConfigFromFileAndEnv_FileUsedForStore(t *testing.T) {
 	writeConfigFile(t, dir, `{
 		"tasks_file": "custom-tasks.jsonl",
 		"docs_dir": "custom-docs",
-		"hash_length": 8
+		"display_hash_length": 8
 	}`)
 	t.Setenv(store.EnvBackend, "")
 	t.Setenv(store.EnvTasksFile, "")
 	t.Setenv(store.EnvDocsDir, "")
-	t.Setenv(store.EnvHashLength, "")
+	t.Setenv(store.EnvDisplayHashLength, "")
 
 	cfg, err := store.ConfigFromFileAndEnv(dir)
 	if err != nil {
@@ -388,16 +396,16 @@ func TestConfigFromFileAndEnv_FileUsedForStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	// Hash length from file should be used.
-	if len(task.DocHash) != 8 {
-		t.Errorf("expected DocHash length 8, got %d: %s", len(task.DocHash), task.DocHash)
+	// DocHash is always the full 64-char hash.
+	if len(task.DocHash) != 64 {
+		t.Errorf("expected DocHash length 64, got %d: %s", len(task.DocHash), task.DocHash)
 	}
 	// Custom tasks file should have been created.
 	if _, err := os.Stat(filepath.Join(dir, "custom-tasks.jsonl")); err != nil {
 		t.Errorf("expected custom-tasks.jsonl: %v", err)
 	}
-	// Custom docs dir should have been created.
-	if _, err := os.Stat(filepath.Join(dir, "custom-docs", task.DocHash+".md")); err != nil {
+	// Custom docs dir: file named with first 8 chars of DocHash.
+	if _, err := os.Stat(filepath.Join(dir, "custom-docs", task.DocHash[:8]+".md")); err != nil {
 		t.Errorf("expected detail file in custom-docs: %v", err)
 	}
 }
