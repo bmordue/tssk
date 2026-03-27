@@ -23,14 +23,14 @@ func TestDefaultConfigFileContent(t *testing.T) {
 	if got, ok := raw["backend"].(string); !ok || got != "local" {
 		t.Errorf("expected backend=local, got %#v", raw["backend"])
 	}
-	if got, ok := raw["tasks_file"].(string); !ok || got != "tasks.jsonl" {
-		t.Errorf("expected tasks_file=tasks.jsonl, got %#v", raw["tasks_file"])
+	if got, ok := raw["tasks_file"].(string); !ok || got != ".tsks/tasks.json" {
+		t.Errorf("expected tasks_file=.tsks/tasks.json, got %#v", raw["tasks_file"])
 	}
-	if got, ok := raw["docs_dir"].(string); !ok || got != "docs" {
-		t.Errorf("expected docs_dir=docs, got %#v", raw["docs_dir"])
+	if got, ok := raw["docs_dir"].(string); !ok || got != ".tsks/docs" {
+		t.Errorf("expected docs_dir=.tsks/docs, got %#v", raw["docs_dir"])
 	}
-	if got, ok := raw["hash_length"].(float64); !ok || int(got) != 64 {
-		t.Errorf("expected hash_length=64, got %#v", raw["hash_length"])
+	if got, ok := raw["display_hash_length"].(float64); !ok || int(got) != 9 {
+		t.Errorf("expected display_hash_length=9, got %#v", raw["display_hash_length"])
 	}
 }
 

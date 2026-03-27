@@ -149,10 +149,10 @@ type fileS3Config struct {
 // DefaultConfigFileContent returns the default JSON content for .tssk.json.
 func DefaultConfigFileContent() ([]byte, error) {
 	fc := fileConfig{
-		Backend:    string(BackendLocal),
-		TasksFile:  defaultTasksFile,
-		DocsDir:    defaultDocsDir,
-		HashLength: defaultHashLength,
+		Backend:           string(BackendLocal),
+		TasksFile:         defaultTasksFile,
+		DocsDir:           defaultDocsDir,
+		DisplayHashLength: defaultDisplayHashLength,
 	}
 	b, err := json.MarshalIndent(fc, "", "  ")
 	if err != nil {
