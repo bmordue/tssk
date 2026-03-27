@@ -16,7 +16,7 @@ tssk provides a lightweight task tracking system that lives alongside your code.
 Build the binary from source:
 
 ```bash
-go build -o tssk .
+go build -o build/tssk .
 ```
 
 Then move the binary to a directory on your PATH, for example:
