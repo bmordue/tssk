@@ -40,7 +40,7 @@ var initCmd = &cobra.Command{
 			return fmt.Errorf("writing config file %q: %w", configPath, err)
 		}
 
-fmt.Fprintf(os.Stderr, "Wrote default config to %s\n", configPath)
+		fmt.Fprintf(os.Stderr, "Wrote default config to %s\n", configPath)
 		return nil
 	},
 }

@@ -93,18 +93,18 @@ func ConfigFromEnv(root string) (*Config, error) {
 		cfg.DocsDir = s
 	}
 	if s := os.Getenv(EnvDisplayHashLength); s != "" {
-			n, err := strconv.Atoi(s)
-			if err != nil || n < 1 || n > 64 {
-				return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvDisplayHashLength, s)
-			}
-			cfg.DisplayHashLength = n
+		n, err := strconv.Atoi(s)
+		if err != nil || n < 1 || n > 64 {
+			return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvDisplayHashLength, s)
 		}
+		cfg.DisplayHashLength = n
+	}
 
-		switch cfg.Backend {
-		case BackendLocal:
-			// Nothing extra to parse.
-		case BackendS3:
-			timeout := 30 * time.Second
+	switch cfg.Backend {
+	case BackendLocal:
+		// Nothing extra to parse.
+	case BackendS3:
+		timeout := 30 * time.Second
 		if s := os.Getenv(EnvS3TimeoutSec); s != "" {
 			secs, err := strconv.Atoi(s)
 			if err != nil || secs <= 0 {
@@ -130,11 +130,11 @@ func ConfigFromEnv(root string) (*Config, error) {
 // All fields are optional; absent fields fall back to built-in defaults,
 // which may be further overridden by environment variables.
 type fileConfig struct {
-	Backend    string       `json:"backend,omitempty"`
-	TasksFile  string       `json:"tasks_file,omitempty"`
-	DocsDir    string       `json:"docs_dir,omitempty"`
-	DisplayHashLength int `json:"display_hash_length,omitempty"`
-	S3         *fileS3Config `json:"s3,omitempty"`
+	Backend           string        `json:"backend,omitempty"`
+	TasksFile         string        `json:"tasks_file,omitempty"`
+	DocsDir           string        `json:"docs_dir,omitempty"`
+	DisplayHashLength int           `json:"display_hash_length,omitempty"`
+	S3                *fileS3Config `json:"s3,omitempty"`
 }
 
 // fileS3Config is the S3 sub-section of the JSON config file.
@@ -226,18 +226,18 @@ func ConfigFromFileAndEnv(root string) (*Config, error) {
 		cfg.DocsDir = s
 	}
 	if s := os.Getenv(EnvDisplayHashLength); s != "" {
-			n, err := strconv.Atoi(s)
-			if err != nil || n < 1 || n > 64 {
-				return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvDisplayHashLength, s)
-			}
-			cfg.DisplayHashLength = n
+		n, err := strconv.Atoi(s)
+		if err != nil || n < 1 || n > 64 {
+			return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvDisplayHashLength, s)
 		}
+		cfg.DisplayHashLength = n
+	}
 
-		switch cfg.Backend {
-		case BackendLocal:
-			// Nothing extra to parse.
-		case BackendS3:
-			if s := os.Getenv(EnvS3Bucket); s != "" {
+	switch cfg.Backend {
+	case BackendLocal:
+		// Nothing extra to parse.
+	case BackendS3:
+		if s := os.Getenv(EnvS3Bucket); s != "" {
 			cfg.S3.Bucket = s
 		}
 		if s := os.Getenv(EnvS3Prefix); s != "" {
