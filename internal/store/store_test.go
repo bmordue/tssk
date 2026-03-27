@@ -67,8 +67,8 @@ func TestAddCreatesDetailFile(t *testing.T) {
 		t.Fatalf("Add: %v", err)
 	}
 
-	// DocHash is the full 64-char hash; the file is named with the first 9 chars (default).
-	docPath := filepath.Join(dir, ".tsks", "docs", tk.DocHash[:9]+".md")
+	// DocHash is the full 64-char hash; the file is named with the full hash.
+	docPath := filepath.Join(dir, ".tsks", "docs", tk.DocHash+".md")
 	b, err := os.ReadFile(docPath)
 	if err != nil {
 		t.Fatalf("detail file not created: %v", err)
@@ -127,6 +127,29 @@ func TestPrefixMatching(t *testing.T) {
 		t.Errorf("unexpected result: id=%s status=%s", updated.ID, updated.Status)
 	}
 }
+func TestAmbiguousPrefix(t *testing.T) {
+	dir := t.TempDir()
+	// Seed the tasks file directly with two tasks whose IDs share a common
+	// prefix but neither of which is an exact match for that prefix.
+	tasksDir := filepath.Join(dir, ".tsks")
+	if err := os.MkdirAll(tasksDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	tasksData := `{"id":"10","title":"Task Ten","status":"todo","created_at":"2024-01-01T00:00:00Z","doc_hash":""}
+{"id":"11","title":"Task Eleven","status":"todo","created_at":"2024-01-01T00:00:00Z","doc_hash":""}
+`
+	if err := os.WriteFile(filepath.Join(tasksDir, "tasks.jsonl"), []byte(tasksData), 0o644); err != nil {
+		t.Fatalf("write tasks: %v", err)
+	}
+	s := store.New(dir)
+
+	// "1" is not an exact ID but is a prefix of both "10" and "11".
+	_, err := s.Get("1")
+	if !errors.Is(err, store.ErrAmbiguous) {
+		t.Errorf("expected ErrAmbiguous for ambiguous prefix, got %v", err)
+	}
+}
+
 func TestUpdateStatus(t *testing.T) {
 	s := newTempStore(t)
 	tk, _ := s.Add("Status test", "", nil)

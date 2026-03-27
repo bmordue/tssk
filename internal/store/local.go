@@ -64,7 +64,12 @@ func (b *LocalBackend) WriteTasksData(data []byte) error {
 		return fmt.Errorf("creating tasks directory: %w", err)
 	}
 
-	tmpFile, err := os.CreateTemp(dir, "tasks-*.json")
+	ext := filepath.Ext(tasksPath)
+	if ext == "" {
+		ext = defaultTasksFileExt
+	}
+
+	tmpFile, err := os.CreateTemp(dir, "tasks-*"+ext)
 	if err != nil {
 		return fmt.Errorf("creating temp tasks file: %w", err)
 	}

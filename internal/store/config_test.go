@@ -23,8 +23,8 @@ func TestDefaultConfigFileContent(t *testing.T) {
 	if got, ok := raw["backend"].(string); !ok || got != "local" {
 		t.Errorf("expected backend=local, got %#v", raw["backend"])
 	}
-	if got, ok := raw["tasks_file"].(string); !ok || got != ".tsks/tasks.json" {
-		t.Errorf("expected tasks_file=.tsks/tasks.json, got %#v", raw["tasks_file"])
+	if got, ok := raw["tasks_file"].(string); !ok || got != ".tsks/tasks.jsonl" {
+		t.Errorf("expected tasks_file=.tsks/tasks.jsonl, got %#v", raw["tasks_file"])
 	}
 	if got, ok := raw["docs_dir"].(string); !ok || got != ".tsks/docs" {
 		t.Errorf("expected docs_dir=.tsks/docs, got %#v", raw["docs_dir"])
@@ -117,8 +117,8 @@ func TestNewFromConfig_CustomTasksFileAndDocsDir(t *testing.T) {
 		t.Errorf("expected custom tasks file: %v", err)
 	}
 	// Verify the custom docs directory was created.
-	// DocHash is always 64 chars; filename uses first displayHashLength (default 9) chars.
-	docPath := filepath.Join(dir, "custom-docs", task.DocHash[:9]+".md")
+	// DocHash is the full 64-char SHA-256 hash; the filename uses the full hash.
+	docPath := filepath.Join(dir, "custom-docs", task.DocHash+".md")
 	if _, err := os.Stat(docPath); err != nil {
 		t.Errorf("expected detail file at %s: %v", docPath, err)
 	}
@@ -139,12 +139,12 @@ func TestNewFromConfig_CustomHashLength(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	// DocHash is always the full 64-char hash now.
+	// DocHash is always the full 64-char hash.
 	if len(task.DocHash) != 64 {
 		t.Errorf("expected DocHash length 64, got %d: %s", len(task.DocHash), task.DocHash)
 	}
-	// Detail file should be named with the first 12 chars of DocHash.
-	docPath := filepath.Join(dir, ".tsks", "docs", task.DocHash[:12]+".md")
+	// Detail file is named with the full hash; DisplayHashLength only controls display output.
+	docPath := filepath.Join(dir, ".tsks", "docs", task.DocHash+".md")
 	if _, err := os.Stat(docPath); err != nil {
 		t.Errorf("expected detail file at %s: %v", docPath, err)
 	}
@@ -404,8 +404,8 @@ func TestConfigFromFileAndEnv_FileUsedForStore(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "custom-tasks.jsonl")); err != nil {
 		t.Errorf("expected custom-tasks.jsonl: %v", err)
 	}
-	// Custom docs dir: file named with first 8 chars of DocHash.
-	if _, err := os.Stat(filepath.Join(dir, "custom-docs", task.DocHash[:8]+".md")); err != nil {
+	// Custom docs dir: file named with the full hash (DisplayHashLength only controls display).
+	if _, err := os.Stat(filepath.Join(dir, "custom-docs", task.DocHash+".md")); err != nil {
 		t.Errorf("expected detail file in custom-docs: %v", err)
 	}
 }

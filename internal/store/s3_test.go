@@ -131,8 +131,8 @@ func TestS3Backend_PrefixIsApplied(t *testing.T) {
 	}
 
 	// The mock should have stored the data under the prefixed key.
-	if _, ok := mock.objects["tssk/.tsks/tasks.json"]; !ok {
-		t.Errorf("expected key 'tssk/.tsks/tasks.json' in mock, got %v", mock.objects)
+	if _, ok := mock.objects["tssk/.tsks/tasks.jsonl"]; !ok {
+		t.Errorf("expected key 'tssk/.tsks/tasks.jsonl' in mock, got %v", mock.objects)
 	}
 }
 
@@ -147,8 +147,8 @@ func TestS3Backend_PrefixWithTrailingSlash(t *testing.T) {
 	if err := b.WriteTasksData([]byte("x\n")); err != nil {
 		t.Fatalf("WriteTasksData: %v", err)
 	}
-	if _, ok := mock.objects["tssk/.tsks/tasks.json"]; !ok {
-		t.Errorf("expected key 'tssk/.tsks/tasks.json', got %v", mock.objects)
+	if _, ok := mock.objects["tssk/.tsks/tasks.jsonl"]; !ok {
+		t.Errorf("expected key 'tssk/.tsks/tasks.jsonl', got %v", mock.objects)
 	}
 }
 

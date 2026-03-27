@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	defaultTasksFile         = ".tsks/tasks.json"
+	defaultTasksFile         = ".tsks/tasks.jsonl"
+	defaultTasksFileExt      = ".jsonl"
 	defaultDocsDir           = ".tsks/docs"
 	defaultDisplayHashLength = 9
 )
@@ -132,7 +133,7 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 		return nil, fmt.Errorf("computing doc hash: %w", err)
 	}
 
-	displayKey := s.displayHash(t.DocHash)
+	displayKey := t.DocHash
 	if err := s.backend.WriteDetail(displayKey, []byte(detail)); err != nil {
 		return nil, fmt.Errorf("writing detail: %w", err)
 	}
@@ -217,7 +218,7 @@ func (s *Store) RemoveDep(id, dep string) error {
 
 // ReadDetail returns the markdown detail text for a task.
 func (s *Store) ReadDetail(t *task.Task) (string, error) {
-	data, err := s.backend.ReadDetail(s.displayHash(t.DocHash))
+	data, err := s.backend.ReadDetail(t.DocHash)
 	if err != nil {
 		return "", fmt.Errorf("reading detail: %w", err)
 	}
