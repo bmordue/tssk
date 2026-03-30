@@ -16,7 +16,7 @@ const (
 	defaultTasksFile         = ".tsks/tasks.jsonl"
 	defaultTasksFileExt      = ".jsonl"
 	defaultDocsDir           = ".tsks/docs"
-	defaultDisplayHashLength = 9
+	DefaultDisplayHashLength = 9
 )
 
 // ErrNotFound is returned when a task with the given ID cannot be located.
@@ -42,7 +42,7 @@ func New(root string) *Store {
 
 // NewWithBackend creates a Store that uses the supplied Backend for all I/O.
 func NewWithBackend(b Backend) *Store {
-	return &Store{backend: b, displayHashLength: defaultDisplayHashLength}
+	return &Store{backend: b, displayHashLength: DefaultDisplayHashLength}
 }
 
 // HealthCheck delegates to the underlying Backend's HealthCheck.
@@ -133,7 +133,7 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 		return nil, fmt.Errorf("computing doc hash: %w", err)
 	}
 
-	displayKey := t.DocHash
+	displayKey := t.DocHash[:s.displayHashLength]
 	if err := s.backend.WriteDetail(displayKey, []byte(detail)); err != nil {
 		return nil, fmt.Errorf("writing detail: %w", err)
 	}
@@ -218,7 +218,8 @@ func (s *Store) RemoveDep(id, dep string) error {
 
 // ReadDetail returns the markdown detail text for a task.
 func (s *Store) ReadDetail(t *task.Task) (string, error) {
-	data, err := s.backend.ReadDetail(t.DocHash)
+	displayKey := t.DocHash[:s.displayHashLength]
+	data, err := s.backend.ReadDetail(displayKey)
 	if err != nil {
 		return "", fmt.Errorf("reading detail: %w", err)
 	}

@@ -152,7 +152,7 @@ func DefaultConfigFileContent() ([]byte, error) {
 		Backend:           string(BackendLocal),
 		TasksFile:         defaultTasksFile,
 		DocsDir:           defaultDocsDir,
-		DisplayHashLength: defaultDisplayHashLength,
+		DisplayHashLength: DefaultDisplayHashLength,
 	}
 	b, err := json.MarshalIndent(fc, "", "  ")
 	if err != nil {

@@ -117,8 +117,8 @@ func TestNewFromConfig_CustomTasksFileAndDocsDir(t *testing.T) {
 		t.Errorf("expected custom tasks file: %v", err)
 	}
 	// Verify the custom docs directory was created.
-	// DocHash is the full 64-char SHA-256 hash; the filename uses the full hash.
-	docPath := filepath.Join(dir, "custom-docs", task.DocHash+".md")
+	// DocHash is the full 64-char SHA-256 hash; the filename uses displayHashLength (default 9).
+	docPath := filepath.Join(dir, "custom-docs", task.DocHash[:store.DefaultDisplayHashLength]+".md")
 	if _, err := os.Stat(docPath); err != nil {
 		t.Errorf("expected detail file at %s: %v", docPath, err)
 	}
@@ -143,8 +143,8 @@ func TestNewFromConfig_CustomHashLength(t *testing.T) {
 	if len(task.DocHash) != 64 {
 		t.Errorf("expected DocHash length 64, got %d: %s", len(task.DocHash), task.DocHash)
 	}
-	// Detail file is named with the full hash; DisplayHashLength only controls display output.
-	docPath := filepath.Join(dir, ".tsks", "docs", task.DocHash+".md")
+	// Detail file is named with the configured display_hash_length (12 characters).
+	docPath := filepath.Join(dir, ".tsks", "docs", task.DocHash[:12]+".md")
 	if _, err := os.Stat(docPath); err != nil {
 		t.Errorf("expected detail file at %s: %v", docPath, err)
 	}
@@ -404,8 +404,65 @@ func TestConfigFromFileAndEnv_FileUsedForStore(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "custom-tasks.jsonl")); err != nil {
 		t.Errorf("expected custom-tasks.jsonl: %v", err)
 	}
-	// Custom docs dir: file named with the full hash (DisplayHashLength only controls display).
-	if _, err := os.Stat(filepath.Join(dir, "custom-docs", task.DocHash+".md")); err != nil {
+	// Custom docs dir: file named with display_hash_length (8 characters).
+	if _, err := os.Stat(filepath.Join(dir, "custom-docs", task.DocHash[:8]+".md")); err != nil {
 		t.Errorf("expected detail file in custom-docs: %v", err)
+	}
+}
+
+func TestConfigFromFileAndEnv_DisplayHashLengthNine(t *testing.T) {
+	dir := t.TempDir()
+	// Configure display_hash_length to 9 in the config file
+	writeConfigFile(t, dir, `{
+		"display_hash_length": 9
+	}`)
+	t.Setenv(store.EnvBackend, "")
+	t.Setenv(store.EnvTasksFile, "")
+	t.Setenv(store.EnvDocsDir, "")
+	t.Setenv(store.EnvDisplayHashLength, "")
+
+	cfg, err := store.ConfigFromFileAndEnv(dir)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	if cfg.DisplayHashLength != 9 {
+		t.Errorf("expected DisplayHashLength 9 from config file, got %d", cfg.DisplayHashLength)
+	}
+
+	s, err := store.NewFromConfig(cfg)
+	if err != nil {
+		t.Fatalf("NewFromConfig: %v", err)
+	}
+
+	task, err := s.Add("Test task with hash length 9", "detail content", nil)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// DocHash stored in tasks.jsonl is always the full 64-character hash
+	if len(task.DocHash) != 64 {
+		t.Errorf("expected DocHash length 64, got %d: %s", len(task.DocHash), task.DocHash)
+	}
+
+	// Detail file in .tsks/docs is named with 9 characters (the display_hash_length value)
+	shortHash := task.DocHash[:9]
+	docPath := filepath.Join(dir, ".tsks", "docs", shortHash+".md")
+	if _, err := os.Stat(docPath); err != nil {
+		t.Errorf("expected detail file at %s: %v", docPath, err)
+	}
+
+	// Verify that a file named with the full 64-character hash does NOT exist
+	fullPath := filepath.Join(dir, ".tsks", "docs", task.DocHash+".md")
+	if _, err := os.Stat(fullPath); err == nil {
+		t.Errorf("file should not exist at full hash path %s (files use display_hash_length, not full hash)", fullPath)
+	}
+
+	// Verify we can read back the detail content using ReadDetail
+	detail, err := s.ReadDetail(task)
+	if err != nil {
+		t.Fatalf("ReadDetail: %v", err)
+	}
+	if detail != "detail content" {
+		t.Errorf("expected 'detail content', got %q", detail)
 	}
 }
