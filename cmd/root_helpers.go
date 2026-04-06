@@ -37,3 +37,19 @@ func openStore() (*store.Store, error) {
 	}
 	return s, nil
 }
+
+// openMultiStore creates a MultiStore that aggregates the primary store with
+// any additional collections defined in .tssk.json under the "collections"
+// key.  When no collections are configured the MultiStore wraps only the
+// primary store, which is equivalent to using openStore() for read operations.
+func openMultiStore() (*store.MultiStore, error) {
+	cfg, err := store.ConfigFromFileAndEnv(projectRoot())
+	if err != nil {
+		return nil, fmt.Errorf("storage configuration: %w", err)
+	}
+	ms, err := store.MultiStoreFromConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("opening multi-store: %w", err)
+	}
+	return ms, nil
+}

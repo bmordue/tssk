@@ -50,6 +50,10 @@ const (
 
 // Config holds the configuration required to build a Store.
 type Config struct {
+	// Name is an optional label for the primary store used when resolving
+	// cross-collection dependency IDs.  When non-empty, qualified IDs of the
+	// form "{Name}:{id}" are resolved against this (primary) store.
+	Name string
 	// Backend selects the storage implementation.
 	Backend BackendType
 	// Root is the local filesystem root used by the local backend.
@@ -71,6 +75,10 @@ type Config struct {
 	DisplayHashLength int
 	// S3 holds S3-specific configuration (used when Backend == BackendS3).
 	S3 S3Config
+	// Collections lists additional named task collections to include when
+	// operating across multiple projects.  Each entry is opened as an
+	// independent Store that participates in a MultiStore.
+	Collections []CollectionConfig
 }
 
 // ConfigFromEnv builds a Config by reading environment variables, falling
@@ -126,11 +134,48 @@ func ConfigFromEnv(root string) (*Config, error) {
 	return cfg, nil
 }
 
+// CollectionConfig describes a named external task collection to include when
+// working across multiple projects.  Each collection is opened as an
+// independent Store and its tasks are surfaced via a MultiStore.
+type CollectionConfig struct {
+	// Name is the display label used to qualify task IDs from this collection
+	// (e.g. "frontend" turns task "3" into "frontend:3").  Required.
+	Name string
+	// Backend selects the storage implementation for this collection.
+	// Defaults to the local filesystem backend.
+	Backend BackendType
+	// Root is the local filesystem root for this collection.
+	// May be absolute or relative to the directory containing .tssk.json.
+	Root string
+	// TasksFile overrides the path to the tasks JSONL file within this
+	// collection (relative to Root for local, or as an S3 key).
+	TasksFile string
+	// DocsDir overrides the directory that holds task detail markdown files.
+	DocsDir string
+	// DisplayHashLength overrides the hash prefix length for this collection.
+	DisplayHashLength int
+	// S3 holds S3-specific settings (used when Backend == BackendS3).
+	S3 S3Config
+}
+
 // fileConfig is the on-disk JSON representation of tssk configuration.
 // All fields are optional; absent fields fall back to built-in defaults,
 // which may be further overridden by environment variables.
 type fileConfig struct {
+	Name              string                 `json:"name,omitempty"`
+	Backend           string                 `json:"backend,omitempty"`
+	TasksFile         string                 `json:"tasks_file,omitempty"`
+	DocsDir           string                 `json:"docs_dir,omitempty"`
+	DisplayHashLength int                    `json:"display_hash_length,omitempty"`
+	S3                *fileS3Config          `json:"s3,omitempty"`
+	Collections       []fileCollectionConfig `json:"collections,omitempty"`
+}
+
+// fileCollectionConfig is the JSON representation of a single collection entry.
+type fileCollectionConfig struct {
+	Name              string        `json:"name"`
 	Backend           string        `json:"backend,omitempty"`
+	Root              string        `json:"root,omitempty"`
 	TasksFile         string        `json:"tasks_file,omitempty"`
 	DocsDir           string        `json:"docs_dir,omitempty"`
 	DisplayHashLength int           `json:"display_hash_length,omitempty"`
@@ -191,6 +236,7 @@ func ConfigFromFileAndEnv(root string) (*Config, error) {
 	// Seed defaults from the config file (if present).
 	cfg := &Config{Root: root}
 	if fileCfg != nil {
+		cfg.Name = fileCfg.Name
 		cfg.Backend = BackendType(fileCfg.Backend)
 		cfg.TasksFile = fileCfg.TasksFile
 		cfg.DocsDir = fileCfg.DocsDir
@@ -208,6 +254,48 @@ func ConfigFromFileAndEnv(root string) (*Config, error) {
 			if fileCfg.S3.TimeoutSec > 0 {
 				cfg.S3.RequestTimeout = time.Duration(fileCfg.S3.TimeoutSec) * time.Second
 			}
+		}
+		// Parse collections.
+		for i, fc := range fileCfg.Collections {
+			if fc.Name == "" {
+				return nil, fmt.Errorf("collection at index %d has no name", i)
+			}
+			collBackend := BackendType(fc.Backend)
+			if collBackend == "" {
+				collBackend = BackendLocal
+			}
+			collRoot := fc.Root
+			if collRoot != "" && !filepath.IsAbs(collRoot) {
+				collRoot = filepath.Join(root, collRoot)
+			}
+			// For the local backend, root is required so tasks are not
+			// inadvertently read/written relative to the process working directory.
+			if collBackend == BackendLocal && collRoot == "" {
+				return nil, fmt.Errorf("collection %q: \"root\" is required for the local backend", fc.Name)
+			}
+			cc := CollectionConfig{
+				Name:      fc.Name,
+				Backend:   collBackend,
+				Root:      collRoot,
+				TasksFile: fc.TasksFile,
+				DocsDir:   fc.DocsDir,
+			}
+			if fc.DisplayHashLength != 0 {
+				if fc.DisplayHashLength < 1 || fc.DisplayHashLength > 64 {
+					return nil, fmt.Errorf("collection %q: invalid display_hash_length %d: must be between 1 and 64", fc.Name, fc.DisplayHashLength)
+				}
+				cc.DisplayHashLength = fc.DisplayHashLength
+			}
+			if fc.S3 != nil {
+				cc.S3.Bucket = fc.S3.Bucket
+				cc.S3.Prefix = fc.S3.Prefix
+				cc.S3.Endpoint = fc.S3.Endpoint
+				cc.S3.Region = fc.S3.Region
+				if fc.S3.TimeoutSec > 0 {
+					cc.S3.RequestTimeout = time.Duration(fc.S3.TimeoutSec) * time.Second
+				}
+			}
+			cfg.Collections = append(cfg.Collections, cc)
 		}
 	}
 

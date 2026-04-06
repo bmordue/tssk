@@ -12,6 +12,7 @@ import (
 )
 
 var listStatus string
+var listAllCollections bool
 
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -25,6 +26,10 @@ var listCmd = &cobra.Command{
 				return fmt.Errorf("unknown status %q; valid values: todo, in-progress, done, blocked", listStatus)
 			}
 			statusFilter = &s
+		}
+
+		if listAllCollections {
+			return listAllCollectionsCmd(statusFilter)
 		}
 
 		st, err := openStore()
@@ -53,6 +58,63 @@ var listCmd = &cobra.Command{
 	},
 }
 
+// primaryCollectionLabel is the display label used for the primary (unnamed)
+// collection when listing tasks across all collections.
+const primaryCollectionLabel = "(primary)"
+
+// qualifyDeps returns the dependency list qualified with the given collection
+// name.  Dependencies that already contain ":" (already qualified) are left
+// unchanged; bare IDs are prefixed with "{collection}:".  An empty collection
+// means the primary (unnamed) store – those are left unqualified.
+func qualifyDeps(deps []string, collection string) []string {
+	if len(deps) == 0 || collection == "" {
+		return deps
+	}
+	out := make([]string, len(deps))
+	for i, d := range deps {
+		if strings.Contains(d, ":") {
+			out[i] = d
+		} else {
+			out[i] = collection + ":" + d
+		}
+	}
+	return out
+}
+
+// listAllCollectionsCmd handles --all-collections: loads tasks from every
+// configured collection and prints them with a COLLECTION column.
+func listAllCollectionsCmd(statusFilter *task.Status) error {
+	ms, err := openMultiStore()
+	if err != nil {
+		return err
+	}
+	collected, err := ms.LoadAll()
+	if err != nil {
+		return err
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "COLLECTION\tID\tSTATUS\tTITLE\tDEPS")
+	for _, ct := range collected {
+		if statusFilter != nil && ct.Status != *statusFilter {
+			continue
+		}
+		collLabel := ct.Collection
+		if collLabel == "" {
+			collLabel = primaryCollectionLabel
+		}
+		deps := "-"
+		if len(ct.Dependencies) > 0 {
+			qualified := qualifyDeps(ct.Dependencies, ct.Collection)
+			deps = strings.Join(qualified, ", ")
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", collLabel, ct.ID, ct.Status, ct.Title, deps)
+	}
+	_ = w.Flush()
+	return nil
+}
+
 func init() {
 	listCmd.Flags().StringVarP(&listStatus, "status", "s", "", "Filter by status (todo, in-progress, done, blocked)")
+	listCmd.Flags().BoolVarP(&listAllCollections, "all-collections", "a", false, "Include tasks from all configured collections")
 }
