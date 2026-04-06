@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -67,23 +66,17 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 		return []*task.Task{}, nil
 	}
 
-	var tasks []*task.Task
-	lineNum := 0
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	for scanner.Scan() {
-		lineNum++
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
+	// Pre-allocate the tasks slice to reduce re-allocations.
+	lineCount := bytes.Count(data, []byte("\n"))
+	tasks := make([]*task.Task, 0, lineCount)
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	for decoder.More() {
 		t := new(task.Task)
-		if err := json.Unmarshal([]byte(line), t); err != nil {
-			return nil, fmt.Errorf("parsing tasks line %d: %w", lineNum, err)
+		if err := decoder.Decode(t); err != nil {
+			return nil, fmt.Errorf("parsing tasks: %w", err)
 		}
 		tasks = append(tasks, t)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanning tasks data: %w", err)
 	}
 	return tasks, nil
 }

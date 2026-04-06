@@ -1,0 +1,3 @@
+## 2025-05-14 - json.Decoder vs bufio.Scanner+json.Unmarshal
+**Learning:** For JSONL (JSON Lines) data, using `json.Decoder` is significantly more efficient (~25-30% faster) than a combination of `bufio.Scanner` and `json.Unmarshal`. This is likely because the decoder avoids the intermediate string/byte slice allocations created by the scanner for each line. Pre-allocating the results slice based on expected line count (using `bytes.Count` for newlines) further reduces re-allocation overhead.
+**Action:** Prefer `json.Decoder` when processing streaming JSON or JSONL data. Use `bytes.Count` to estimate slice capacity when loading a full set of JSONL records into memory.
