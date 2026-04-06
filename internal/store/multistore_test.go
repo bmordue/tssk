@@ -419,117 +419,117 @@ func TestMultiStoreFromConfig_NamedPrimary(t *testing.T) {
 }
 
 func TestMultiStoreGet_MalformedID(t *testing.T) {
-primary, _ := newNamedTempStore(t, "Task")
-ms := store.NewMultiStoreWithCollections(primary, nil)
+	primary, _ := newNamedTempStore(t, "Task")
+	ms := store.NewMultiStoreWithCollections(primary, nil)
 
-for _, bad := range []string{":1", "frontend:"} {
-_, err := ms.Get(bad)
-if err == nil {
-t.Errorf("Get(%q): expected error for malformed ID", bad)
-}
-}
+	for _, bad := range []string{":1", "frontend:"} {
+		_, err := ms.Get(bad)
+		if err == nil {
+			t.Errorf("Get(%q): expected error for malformed ID", bad)
+		}
+	}
 }
 
 func TestMultiStoreCheckDeps_MissingDepHasBlockedStatus(t *testing.T) {
-primary, primaryDir := newNamedTempStore(t, "Task with missing dep")
+	primary, primaryDir := newNamedTempStore(t, "Task with missing dep")
 
-// Manually inject a non-existent dep.
-type rawTask struct {
-ID           string   `json:"id"`
-Title        string   `json:"title"`
-Status       string   `json:"status"`
-Dependencies []string `json:"dependencies"`
-CreatedAt    string   `json:"created_at"`
-DocHash      string   `json:"doc_hash"`
-}
-t1, err := primary.Get("1")
-if err != nil {
-t.Fatalf("Get 1: %v", err)
-}
-rt := rawTask{
-ID:           t1.ID,
-Title:        t1.Title,
-Status:       string(t1.Status),
-Dependencies: []string{"99"}, // does not exist
-CreatedAt:    t1.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
-DocHash:      t1.DocHash,
-}
-b, _ := json.Marshal(rt)
-if err := os.WriteFile(filepath.Join(primaryDir, ".tsks", "tasks.jsonl"), append(b, '\n'), 0o600); err != nil {
-t.Fatalf("write tasks: %v", err)
-}
+	// Manually inject a non-existent dep.
+	type rawTask struct {
+		ID           string   `json:"id"`
+		Title        string   `json:"title"`
+		Status       string   `json:"status"`
+		Dependencies []string `json:"dependencies"`
+		CreatedAt    string   `json:"created_at"`
+		DocHash      string   `json:"doc_hash"`
+	}
+	t1, err := primary.Get("1")
+	if err != nil {
+		t.Fatalf("Get 1: %v", err)
+	}
+	rt := rawTask{
+		ID:           t1.ID,
+		Title:        t1.Title,
+		Status:       string(t1.Status),
+		Dependencies: []string{"99"}, // does not exist
+		CreatedAt:    t1.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		DocHash:      t1.DocHash,
+	}
+	b, _ := json.Marshal(rt)
+	if err := os.WriteFile(filepath.Join(primaryDir, ".tsks", "tasks.jsonl"), append(b, '\n'), 0o600); err != nil {
+		t.Fatalf("write tasks: %v", err)
+	}
 
-s := store.New(primaryDir)
-ms := store.NewMultiStoreWithCollections(s, nil)
+	s := store.New(primaryDir)
+	ms := store.NewMultiStoreWithCollections(s, nil)
 
-blocking, allDone, err := ms.CheckDeps("1")
-if err != nil {
-t.Fatalf("CheckDeps: %v", err)
-}
-if allDone {
-t.Error("expected allDone=false for missing dep")
-}
-if len(blocking) != 1 {
-t.Fatalf("expected 1 blocking, got %d", len(blocking))
-}
-if blocking[0].Status != task.StatusBlocked {
-t.Errorf("missing dep placeholder should have status=blocked, got %q", blocking[0].Status)
-}
+	blocking, allDone, err := ms.CheckDeps("1")
+	if err != nil {
+		t.Fatalf("CheckDeps: %v", err)
+	}
+	if allDone {
+		t.Error("expected allDone=false for missing dep")
+	}
+	if len(blocking) != 1 {
+		t.Fatalf("expected 1 blocking, got %d", len(blocking))
+	}
+	if blocking[0].Status != task.StatusBlocked {
+		t.Errorf("missing dep placeholder should have status=blocked, got %q", blocking[0].Status)
+	}
 }
 
 func TestMultiStoreFromConfig_DuplicateCollectionName(t *testing.T) {
-dir1 := t.TempDir()
-dir2 := t.TempDir()
-root := t.TempDir()
+	dir1 := t.TempDir()
+	dir2 := t.TempDir()
+	root := t.TempDir()
 
-writeTssk(t, root, map[string]any{
-"collections": []map[string]any{
-{"name": "dup", "root": dir1},
-{"name": "dup", "root": dir2},
-},
-})
+	writeTssk(t, root, map[string]any{
+		"collections": []map[string]any{
+			{"name": "dup", "root": dir1},
+			{"name": "dup", "root": dir2},
+		},
+	})
 
-cfg, err := store.ConfigFromFileAndEnv(root)
-if err != nil {
-t.Fatalf("ConfigFromFileAndEnv: %v", err)
-}
-_, err = store.MultiStoreFromConfig(cfg)
-if err == nil {
-t.Fatal("expected error for duplicate collection names")
-}
+	cfg, err := store.ConfigFromFileAndEnv(root)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	_, err = store.MultiStoreFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for duplicate collection names")
+	}
 }
 
 func TestMultiStoreFromConfig_CollectionNameCollidesPrimaryName(t *testing.T) {
-collRoot := t.TempDir()
-root := t.TempDir()
+	collRoot := t.TempDir()
+	root := t.TempDir()
 
-writeTssk(t, root, map[string]any{
-"name": "main",
-"collections": []map[string]any{
-{"name": "main", "root": collRoot},
-},
-})
+	writeTssk(t, root, map[string]any{
+		"name": "main",
+		"collections": []map[string]any{
+			{"name": "main", "root": collRoot},
+		},
+	})
 
-cfg, err := store.ConfigFromFileAndEnv(root)
-if err != nil {
-t.Fatalf("ConfigFromFileAndEnv: %v", err)
-}
-_, err = store.MultiStoreFromConfig(cfg)
-if err == nil {
-t.Fatal("expected error for collection name colliding with primary name")
-}
+	cfg, err := store.ConfigFromFileAndEnv(root)
+	if err != nil {
+		t.Fatalf("ConfigFromFileAndEnv: %v", err)
+	}
+	_, err = store.MultiStoreFromConfig(cfg)
+	if err == nil {
+		t.Fatal("expected error for collection name colliding with primary name")
+	}
 }
 
 func TestConfigFromFileAndEnv_CollectionLocalRequiresRoot(t *testing.T) {
-root := t.TempDir()
-writeTssk(t, root, map[string]any{
-"collections": []map[string]any{
-{"name": "missing-root"},
-},
-})
+	root := t.TempDir()
+	writeTssk(t, root, map[string]any{
+		"collections": []map[string]any{
+			{"name": "missing-root"},
+		},
+	})
 
-_, err := store.ConfigFromFileAndEnv(root)
-if err == nil {
-t.Fatal("expected error for local collection without root")
-}
+	_, err := store.ConfigFromFileAndEnv(root)
+	if err == nil {
+		t.Fatal("expected error for local collection without root")
+	}
 }
