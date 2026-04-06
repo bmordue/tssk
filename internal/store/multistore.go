@@ -47,13 +47,6 @@ type MultiStore struct {
 	collections []namedStore
 }
 
-// NewMultiStore creates a MultiStore.  primary is the default store (may be
-// nil if only named collections are used).  collections is the ordered list
-// of additional named stores (using the internal namedStore type).
-func NewMultiStore(primary *Store, collections []namedStore) *MultiStore {
-	return &MultiStore{primary: primary, collections: collections}
-}
-
 // NewMultiStoreWithCollections creates a MultiStore from a primary Store and a
 // slice of NamedStore values.  This is the preferred public constructor when
 // building a MultiStore from named collection stores.
@@ -63,6 +56,12 @@ func NewMultiStoreWithCollections(primary *Store, collections []NamedStore) *Mul
 		internal[i] = namedStore{name: ns.Name, store: ns.Store}
 	}
 	return &MultiStore{primary: primary, collections: internal}
+}
+
+// newMultiStore creates a MultiStore with a pre-converted internal slice.
+// Used internally by MultiStoreFromConfig.
+func newMultiStore(primary *Store, collections []namedStore) *MultiStore {
+	return &MultiStore{primary: primary, collections: collections}
 }
 
 // LoadAll returns tasks from every store, in order: primary first, then each
@@ -102,7 +101,10 @@ func (m *MultiStore) LoadAll() ([]CollectedTask, error) {
 //     qualified ID using that name is resolved against the primary store.
 //   - An unqualified ID is resolved against the primary store only.
 func (m *MultiStore) Get(qualifiedID string) (CollectedTask, error) {
-	collection, id := splitQualifiedID(qualifiedID)
+	collection, id, err := splitQualifiedID(qualifiedID)
+	if err != nil {
+		return CollectedTask{}, err
+	}
 
 	if collection == "" {
 		// Unqualified: look in primary.
@@ -147,7 +149,10 @@ func (m *MultiStore) Get(qualifiedID string) (CollectedTask, error) {
 //
 // Returns (blocking, allDone, err).  When allDone is true blocking is empty.
 func (m *MultiStore) CheckDeps(qualifiedID string) (blocking []CollectedTask, allDone bool, err error) {
-	parentCollection, _ := splitQualifiedID(qualifiedID)
+	parentCollection, _, parseErr := splitQualifiedID(qualifiedID)
+	if parseErr != nil {
+		return nil, false, parseErr
+	}
 	parent, err := m.Get(qualifiedID)
 	if err != nil {
 		return nil, false, err
@@ -158,7 +163,15 @@ func (m *MultiStore) CheckDeps(qualifiedID string) (blocking []CollectedTask, al
 	}
 
 	for _, depID := range parent.Dependencies {
-		depCollection, rawID := splitQualifiedID(depID)
+		depCollection, rawID, parseErr := splitQualifiedID(depID)
+		if parseErr != nil {
+			// Malformed dep ID — treat as blocking.
+			blocking = append(blocking, CollectedTask{
+				Task:       &task.Task{ID: depID, Title: "(malformed dependency ID)", Status: task.StatusBlocked},
+				Collection: "",
+			})
+			continue
+		}
 		if depCollection == "" {
 			// Inherit the parent's collection for unqualified dep IDs.
 			depCollection = parentCollection
@@ -175,7 +188,7 @@ func (m *MultiStore) CheckDeps(qualifiedID string) (blocking []CollectedTask, al
 		if lookupErr != nil {
 			// Treat a missing dep as blocking (not done).
 			blocking = append(blocking, CollectedTask{
-				Task:       &task.Task{ID: rawID, Title: "(not found)"},
+				Task:       &task.Task{ID: rawID, Title: "(dependency not found)", Status: task.StatusBlocked},
 				Collection: depCollection,
 			})
 			continue
@@ -190,11 +203,22 @@ func (m *MultiStore) CheckDeps(qualifiedID string) (blocking []CollectedTask, al
 
 // splitQualifiedID splits a possibly-qualified ID into (collection, id).
 // If the ID has no ":" separator, collection is "".
-func splitQualifiedID(qualifiedID string) (collection, id string) {
-	if i := strings.Index(qualifiedID, ":"); i >= 0 {
-		return qualifiedID[:i], qualifiedID[i+1:]
+// Returns an error for malformed inputs where either the collection or the id
+// part would be empty (e.g. ":1" or "frontend:").
+func splitQualifiedID(qualifiedID string) (collection, id string, err error) {
+	i := strings.Index(qualifiedID, ":")
+	if i < 0 {
+		return "", qualifiedID, nil
 	}
-	return "", qualifiedID
+	collection = qualifiedID[:i]
+	id = qualifiedID[i+1:]
+	if collection == "" {
+		return "", "", fmt.Errorf("malformed qualified ID %q: collection name must not be empty", qualifiedID)
+	}
+	if id == "" {
+		return "", "", fmt.Errorf("malformed qualified ID %q: task ID must not be empty after ':'", qualifiedID)
+	}
+	return collection, id, nil
 }
 
 // CollectionStoreFromConfig creates a Store from a CollectionConfig.  The
@@ -219,7 +243,25 @@ func CollectionStoreFromConfig(cc CollectionConfig) (*Store, error) {
 // store is built from the top-level Config fields; any Collections are opened
 // as additional named stores.  If cfg.Name is set, the primary store is
 // addressable via that name in qualified dependency IDs.
+//
+// Returns an error if any collection names are duplicated or collide with the
+// primary store's name.
 func MultiStoreFromConfig(cfg *Config) (*MultiStore, error) {
+	// Validate collection name uniqueness before opening any stores.
+	seen := make(map[string]bool, len(cfg.Collections)+1)
+	if cfg.Name != "" {
+		seen[cfg.Name] = true
+	}
+	for _, cc := range cfg.Collections {
+		if seen[cc.Name] {
+			if cfg.Name != "" && cc.Name == cfg.Name {
+				return nil, fmt.Errorf("collection name %q collides with the primary store name", cc.Name)
+			}
+			return nil, fmt.Errorf("duplicate collection name %q", cc.Name)
+		}
+		seen[cc.Name] = true
+	}
+
 	primary, err := NewFromConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("opening primary store: %w", err)
@@ -234,7 +276,7 @@ func MultiStoreFromConfig(cfg *Config) (*MultiStore, error) {
 		named = append(named, namedStore{name: cc.Name, store: s})
 	}
 
-	ms := NewMultiStore(primary, named)
+	ms := newMultiStore(primary, named)
 	ms.primaryName = cfg.Name
 	return ms, nil
 }

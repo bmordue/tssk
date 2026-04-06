@@ -62,6 +62,25 @@ var listCmd = &cobra.Command{
 // collection when listing tasks across all collections.
 const primaryCollectionLabel = "(primary)"
 
+// qualifyDeps returns the dependency list qualified with the given collection
+// name.  Dependencies that already contain ":" (already qualified) are left
+// unchanged; bare IDs are prefixed with "{collection}:".  An empty collection
+// means the primary (unnamed) store – those are left unqualified.
+func qualifyDeps(deps []string, collection string) []string {
+	if len(deps) == 0 || collection == "" {
+		return deps
+	}
+	out := make([]string, len(deps))
+	for i, d := range deps {
+		if strings.Contains(d, ":") {
+			out[i] = d
+		} else {
+			out[i] = collection + ":" + d
+		}
+	}
+	return out
+}
+
 // listAllCollectionsCmd handles --all-collections: loads tasks from every
 // configured collection and prints them with a COLLECTION column.
 func listAllCollectionsCmd(statusFilter *task.Status) error {
@@ -86,7 +105,8 @@ func listAllCollectionsCmd(statusFilter *task.Status) error {
 		}
 		deps := "-"
 		if len(ct.Dependencies) > 0 {
-			deps = strings.Join(ct.Dependencies, ", ")
+			qualified := qualifyDeps(ct.Dependencies, ct.Collection)
+			deps = strings.Join(qualified, ", ")
 		}
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", collLabel, ct.ID, ct.Status, ct.Title, deps)
 	}

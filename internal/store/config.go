@@ -260,13 +260,22 @@ func ConfigFromFileAndEnv(root string) (*Config, error) {
 			if fc.Name == "" {
 				return nil, fmt.Errorf("collection at index %d has no name", i)
 			}
+			collBackend := BackendType(fc.Backend)
+			if collBackend == "" {
+				collBackend = BackendLocal
+			}
 			collRoot := fc.Root
 			if collRoot != "" && !filepath.IsAbs(collRoot) {
 				collRoot = filepath.Join(root, collRoot)
 			}
+			// For the local backend, root is required so tasks are not
+			// inadvertently read/written relative to the process working directory.
+			if collBackend == BackendLocal && collRoot == "" {
+				return nil, fmt.Errorf("collection %q: \"root\" is required for the local backend", fc.Name)
+			}
 			cc := CollectionConfig{
 				Name:      fc.Name,
-				Backend:   BackendType(fc.Backend),
+				Backend:   collBackend,
 				Root:      collRoot,
 				TasksFile: fc.TasksFile,
 				DocsDir:   fc.DocsDir,
