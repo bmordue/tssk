@@ -12,6 +12,7 @@ import (
 )
 
 var listStatus string
+var listAllCollections bool
 
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -25,6 +26,10 @@ var listCmd = &cobra.Command{
 				return fmt.Errorf("unknown status %q; valid values: todo, in-progress, done, blocked", listStatus)
 			}
 			statusFilter = &s
+		}
+
+		if listAllCollections {
+			return listAllCollectionsCmd(statusFilter)
 		}
 
 		st, err := openStore()
@@ -53,6 +58,39 @@ var listCmd = &cobra.Command{
 	},
 }
 
+// listAllCollectionsCmd handles --all-collections: loads tasks from every
+// configured collection and prints them with a COLLECTION column.
+func listAllCollectionsCmd(statusFilter *task.Status) error {
+	ms, err := openMultiStore()
+	if err != nil {
+		return err
+	}
+	collected, err := ms.LoadAll()
+	if err != nil {
+		return err
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "COLLECTION\tID\tSTATUS\tTITLE\tDEPS")
+	for _, ct := range collected {
+		if statusFilter != nil && ct.Status != *statusFilter {
+			continue
+		}
+		collLabel := ct.Collection
+		if collLabel == "" {
+			collLabel = "(primary)"
+		}
+		deps := "-"
+		if len(ct.Dependencies) > 0 {
+			deps = strings.Join(ct.Dependencies, ", ")
+		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", collLabel, ct.ID, ct.Status, ct.Title, deps)
+	}
+	_ = w.Flush()
+	return nil
+}
+
 func init() {
 	listCmd.Flags().StringVarP(&listStatus, "status", "s", "", "Filter by status (todo, in-progress, done, blocked)")
+	listCmd.Flags().BoolVarP(&listAllCollections, "all-collections", "a", false, "Include tasks from all configured collections")
 }

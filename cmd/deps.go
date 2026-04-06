@@ -58,13 +58,24 @@ var depsRemoveCmd = &cobra.Command{
 	},
 }
 
+var depsCheckAllCollections bool
+
 var depsCheckCmd = &cobra.Command{
 	Use:   "check <task-id>",
 	Short: "Check the dependency status of a task",
-	Long:  `Show which dependencies of a task are not yet done.`,
-	Args:  cobra.ExactArgs(1),
+	Long: `Show which dependencies of a task are not yet done.
+
+When --all-collections is specified, dependencies are resolved across all
+configured collections.  Cross-collection dependency IDs use the format
+"{collection}:{id}" (e.g. "frontend:3").`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
+
+		if depsCheckAllCollections {
+			return depsCheckAcrossCollections(id)
+		}
+
 		s, err := openStore()
 		if err != nil {
 			return err
@@ -115,7 +126,47 @@ var depsCheckCmd = &cobra.Command{
 	},
 }
 
+// depsCheckAcrossCollections checks deps for qualifiedID using a MultiStore so
+// that dependencies in other configured collections are resolved correctly.
+func depsCheckAcrossCollections(qualifiedID string) error {
+	ms, err := openMultiStore()
+	if err != nil {
+		return err
+	}
+
+	blocking, allDone, err := ms.CheckDeps(qualifiedID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return fmt.Errorf("task %s not found", qualifiedID)
+		}
+		return err
+	}
+
+	// Retrieve the task to check if it even has dependencies.
+	parent, err := ms.Get(qualifiedID)
+	if err != nil {
+		return err
+	}
+	if len(parent.Dependencies) == 0 {
+		fmt.Printf("Task %s has no dependencies.\n", qualifiedID)
+		return nil
+	}
+
+	if allDone {
+		fmt.Printf("Task %s: all dependencies are done. ✓\n", qualifiedID)
+		return nil
+	}
+
+	lines := make([]string, len(blocking))
+	for i, dep := range blocking {
+		lines[i] = fmt.Sprintf("%s (%s) – %s", dep.QualifiedID(), dep.Status, dep.Title)
+	}
+	fmt.Printf("Task %s is blocked by:\n  %s\n", qualifiedID, strings.Join(lines, "\n  "))
+	return nil
+}
+
 func init() {
+	depsCheckCmd.Flags().BoolVarP(&depsCheckAllCollections, "all-collections", "a", false, "Resolve dependencies across all configured collections")
 	depsCmd.AddCommand(depsAddCmd)
 	depsCmd.AddCommand(depsRemoveCmd)
 	depsCmd.AddCommand(depsCheckCmd)
