@@ -99,8 +99,8 @@ func TestMultiStoreGet_Primary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if ct.Task.Title != "Main task" {
-		t.Errorf("unexpected title: %q", ct.Task.Title)
+	if ct.Title != "Main task" {
+		t.Errorf("unexpected title: %q", ct.Title)
 	}
 	if ct.Collection != "" {
 		t.Errorf("expected empty collection, got %q", ct.Collection)
@@ -119,8 +119,8 @@ func TestMultiStoreGet_QualifiedID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get(other:1): %v", err)
 	}
-	if ct.Task.Title != "Coll task" {
-		t.Errorf("unexpected title: %q", ct.Task.Title)
+	if ct.Title != "Coll task" {
+		t.Errorf("unexpected title: %q", ct.Title)
 	}
 	if ct.Collection != "other" {
 		t.Errorf("expected collection=other, got %q", ct.Collection)
@@ -187,8 +187,8 @@ func TestMultiStoreCheckDeps_SameCollection(t *testing.T) {
 	if len(blocking) != 1 {
 		t.Fatalf("expected 1 blocking task, got %d", len(blocking))
 	}
-	if blocking[0].Task.ID != "1" {
-		t.Errorf("unexpected blocking task ID: %q", blocking[0].Task.ID)
+	if blocking[0].ID != "1" {
+		t.Errorf("unexpected blocking task ID: %q", blocking[0].ID)
 	}
 }
 
@@ -220,11 +220,11 @@ func TestMultiStoreCheckDeps_CrossCollection(t *testing.T) {
 		DocHash:      ot1.DocHash,
 	}
 	b, _ := json.Marshal(rt)
-	if err := os.MkdirAll(filepath.Join(dirB, ".tsks"), 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
+	if mkdirErr := os.MkdirAll(filepath.Join(dirB, ".tsks"), 0o755); mkdirErr != nil {
+		t.Fatalf("mkdir: %v", mkdirErr)
 	}
-	if err := os.WriteFile(filepath.Join(dirB, ".tsks", "tasks.jsonl"), append(b, '\n'), 0o600); err != nil {
-		t.Fatalf("write tasks: %v", err)
+	if writeErr := os.WriteFile(filepath.Join(dirB, ".tsks", "tasks.jsonl"), append(b, '\n'), 0o600); writeErr != nil {
+		t.Fatalf("write tasks: %v", writeErr)
 	}
 
 	storeBReloaded := store.New(dirB)
@@ -346,8 +346,8 @@ func TestMultiStoreFromConfig_NoCollections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFromConfig: %v", err)
 	}
-	if _, err := s.Add("Hello", "", nil); err != nil {
-		t.Fatalf("Add: %v", err)
+	if _, addErr := s.Add("Hello", "", nil); addErr != nil {
+		t.Fatalf("Add: %v", addErr)
 	}
 
 	all, err := ms.LoadAll()
@@ -380,12 +380,12 @@ func TestMultiStoreFromConfig_NamedPrimary(t *testing.T) {
 
 	// Add a task to the primary and one to the named collection.
 	primaryS := store.New(root)
-	if _, err := primaryS.Add("Primary task", "", nil); err != nil {
-		t.Fatalf("Add primary: %v", err)
+	if _, addErr := primaryS.Add("Primary task", "", nil); addErr != nil {
+		t.Fatalf("Add primary: %v", addErr)
 	}
 	collS := store.New(collRoot)
-	if _, err := collS.Add("Coll task", "", nil); err != nil {
-		t.Fatalf("Add coll: %v", err)
+	if _, addErr := collS.Add("Coll task", "", nil); addErr != nil {
+		t.Fatalf("Add coll: %v", addErr)
 	}
 
 	ms, err := store.MultiStoreFromConfig(cfg)
@@ -398,8 +398,8 @@ func TestMultiStoreFromConfig_NamedPrimary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get(main:1): %v", err)
 	}
-	if ct.Task.Title != "Primary task" {
-		t.Errorf("unexpected title: %q", ct.Task.Title)
+	if ct.Title != "Primary task" {
+		t.Errorf("unexpected title: %q", ct.Title)
 	}
 	if ct.Collection != "main" {
 		t.Errorf("expected collection=main, got %q", ct.Collection)
@@ -455,8 +455,8 @@ func TestMultiStoreCheckDeps_MissingDepHasBlockedStatus(t *testing.T) {
 		DocHash:      t1.DocHash,
 	}
 	b, _ := json.Marshal(rt)
-	if err := os.WriteFile(filepath.Join(primaryDir, ".tsks", "tasks.jsonl"), append(b, '\n'), 0o600); err != nil {
-		t.Fatalf("write tasks: %v", err)
+	if writeErr := os.WriteFile(filepath.Join(primaryDir, ".tsks", "tasks.jsonl"), append(b, '\n'), 0o600); writeErr != nil {
+		t.Fatalf("write tasks: %v", writeErr)
 	}
 
 	s := store.New(primaryDir)

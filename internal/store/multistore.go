@@ -8,23 +8,25 @@ import (
 )
 
 // CollectedTask pairs a task with the name of the collection it came from.
-// When Collection is empty, the task belongs to the primary (unnamed) store.
+// Tasks from the primary store use an empty Collection when the primary store
+// is unnamed, or the primary store's configured name when it is named.
 type CollectedTask struct {
 	*task.Task
-	// Collection is the name of the source collection, or "" for the primary
-	// store configured by the root .tssk.json.
+	// Collection is the name of the source collection. It is "" for an unnamed
+	// primary store configured by the root .tssk.json, or that primary store's
+	// configured name when the primary store is named.
 	Collection string
 }
 
 // QualifiedID returns the fully-qualified task identifier.
-// For tasks in a named collection the format is "{collection}:{id}" (e.g.
-// "frontend:3").  For tasks in the primary collection the plain ID is
-// returned unchanged.
+// When Collection is non-empty, including for a named primary store, the
+// format is "{collection}:{id}" (e.g. "frontend:3"). For tasks from an
+// unnamed primary store, the plain ID is returned unchanged.
 func (ct CollectedTask) QualifiedID() string {
 	if ct.Collection == "" {
-		return ct.Task.ID
+		return ct.ID
 	}
-	return ct.Collection + ":" + ct.Task.ID
+	return ct.Collection + ":" + ct.ID
 }
 
 // NamedStore pairs a Store with its collection name for use in a MultiStore.
