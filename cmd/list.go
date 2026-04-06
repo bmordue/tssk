@@ -58,6 +58,10 @@ var listCmd = &cobra.Command{
 	},
 }
 
+// primaryCollectionLabel is the display label used for the primary (unnamed)
+// collection when listing tasks across all collections.
+const primaryCollectionLabel = "(primary)"
+
 // listAllCollectionsCmd handles --all-collections: loads tasks from every
 // configured collection and prints them with a COLLECTION column.
 func listAllCollectionsCmd(statusFilter *task.Status) error {
@@ -78,7 +82,7 @@ func listAllCollectionsCmd(statusFilter *task.Status) error {
 		}
 		collLabel := ct.Collection
 		if collLabel == "" {
-			collLabel = "(primary)"
+			collLabel = primaryCollectionLabel
 		}
 		deps := "-"
 		if len(ct.Dependencies) > 0 {
