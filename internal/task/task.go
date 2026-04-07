@@ -2,8 +2,8 @@ package task
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -75,7 +75,8 @@ func (t *Task) ComputeDocHashN(length int) error {
 	if err != nil {
 		return err
 	}
-	full := fmt.Sprintf("%x", sha256.Sum256(b))
+	sum := sha256.Sum256(b)
+	full := hex.EncodeToString(sum[:])
 	if length < 1 || length > len(full) {
 		length = len(full)
 	}
