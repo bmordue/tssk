@@ -130,6 +130,10 @@ tssk init
 
 ## Development
 
+### Managing Tasks with tssk
+
+This project uses tssk for task tracking and development workflow. All development tasks are tracked in the repository using tssk itself.
+
 ### Running Tests
 
 To run all tests in the project:
