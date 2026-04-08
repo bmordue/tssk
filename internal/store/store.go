@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -252,5 +253,5 @@ func resolveOne(tasks []*task.Task, prefix string) (*task.Task, error) {
 
 // generateID produces the next sequential task ID (1, 2, 3, …).
 func generateID(tasks []*task.Task) string {
-	return fmt.Sprintf("%d", len(tasks)+1)
+	return strconv.Itoa(len(tasks) + 1)
 }
