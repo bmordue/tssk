@@ -29,6 +29,26 @@ func BenchmarkLoadAll(b *testing.B) {
 	}
 }
 
+func BenchmarkGet(b *testing.B) {
+	const numTasks = 1000
+	var buf bytes.Buffer
+	for i := 1; i <= numTasks; i++ {
+		fmt.Fprintf(&buf, "{\"id\":\"%d\",\"title\":\"Task %d\",\"status\":\"todo\",\"created_at\":\"2024-01-01T00:00:00Z\",\"doc_hash\":\"hash%d\"}\n", i, i, i)
+	}
+	data := buf.Bytes()
+
+	backend := &mockLoadBackend{data: data}
+	s := NewWithBackend(backend)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := s.Get("1000")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 type mockLoadBackend struct {
 	Backend
 	data []byte

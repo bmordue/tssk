@@ -32,6 +32,7 @@ type Store struct {
 	backend           Backend
 	metrics           *Metrics
 	displayHashLength int
+	cache             []*task.Task
 }
 
 // New creates a Store backed by the local filesystem rooted at root.
@@ -59,12 +60,17 @@ func (s *Store) Metrics() *Metrics {
 // LoadAll reads all tasks from the backend.  Returns an empty slice when
 // the store is empty or has not been initialised yet.
 func (s *Store) LoadAll() ([]*task.Task, error) {
+	if s.cache != nil {
+		return s.cache, nil
+	}
+
 	data, err := s.backend.ReadTasksData()
 	if err != nil {
 		return nil, fmt.Errorf("loading tasks: %w", err)
 	}
 	if len(data) == 0 {
-		return []*task.Task{}, nil
+		s.cache = []*task.Task{}
+		return s.cache, nil
 	}
 
 	// Pre-allocate the tasks slice to reduce re-allocations.
@@ -79,6 +85,7 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 		}
 		tasks = append(tasks, t)
 	}
+	s.cache = tasks
 	return tasks, nil
 }
 
@@ -94,6 +101,7 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 	if err := s.backend.WriteTasksData(buf.Bytes()); err != nil {
 		return fmt.Errorf("saving tasks: %w", err)
 	}
+	s.cache = tasks
 	return nil
 }
 
