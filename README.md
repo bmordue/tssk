@@ -130,6 +130,44 @@ tssk init
 
 ## Development
 
+### Managing Tasks with tssk
+
+This project uses tssk for task tracking and development workflow. All development tasks are tracked in the repository using tssk itself.
+
+**Key commands:**
+
+```bash
+# View all tasks
+./build/tssk list
+
+# View tasks by status
+./build/tssk list --status todo
+./build/tssk list --status in-progress
+./build/tssk list --status done
+
+# View task details
+./build/tssk show <id>
+
+# Create a new task
+./build/tssk add --title "Your task" --detail "Optional markdown detail"
+
+# Update task status
+./build/tssk status <id> in-progress
+./build/tssk status <id> done
+
+# Manage dependencies
+./build/tssk deps add <task-id> <dependency-id>
+./build/tssk deps check <task-id>
+```
+
+**Task lifecycle:**
+1. Tasks start in `todo` status when created
+2. Move to `in-progress` when work begins
+3. Mark as `done` when complete
+4. Use `blocked` for tasks waiting on dependencies
+
+**Current backlog:** See `roadmap.md` for the full development roadmap with phase breakdowns and timelines.
+
 ### Running Tests
 
 To run all tests in the project:
