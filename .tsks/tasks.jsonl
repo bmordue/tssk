@@ -3,7 +3,7 @@
 {"id":"3","title":"Cobra CLI skeleton (add/list/show/status/deps)","status":"done","created_at":"2026-04-07T11:50:34.45213442Z","doc_hash":"59c0ed5e3947be5e33e57ca05b26f80e0c8e09f0a3803670a29a1daa44b7c1e7"}
 {"id":"4","title":"Unit tests for task and store packages","status":"done","created_at":"2026-04-07T11:50:34.464401455Z","doc_hash":"dd191539e046b179f543c288082fdd60ba8578afd6208c8ec79586864e7b0fca"}
 {"id":"5","title":"Enhanced CI/CD pipeline (security scanning, quality gates)","status":"todo","created_at":"2026-04-07T11:50:34.476767037Z","doc_hash":"a9ca028aa5db47d882d296a95dac230c4f8268a3d98aca68bf2a276d39cb0679"}
-{"id":"6","title":"Update README with usage examples and architecture overview","status":"todo","created_at":"2026-04-07T11:59:14.037362992Z","doc_hash":"387c3d25e9ae24daad11a571da5c6190b9dd6cf25f9ab1f2644237819ef3b1a7"}
+{"id":"6","title":"Update README with usage examples and architecture overview","status":"todo","dependencies":["5"],"created_at":"2026-04-07T11:59:14.037362992Z","doc_hash":"387c3d25e9ae24daad11a571da5c6190b9dd6cf25f9ab1f2644237819ef3b1a7"}
 {"id":"7","title":"Add Nix development environment flake","status":"todo","created_at":"2026-04-07T11:59:14.046729483Z","doc_hash":"bf0a45afd851feac4476ff67e76eb45e9c6e7bea5e0b944ae42807a3ab1631db"}
 {"id":"8","title":"Task search/filter (tssk list --status, --title)","status":"todo","created_at":"2026-04-07T11:59:14.056903045Z","doc_hash":"28027da41b83fe5236a07f6fc814bfdfd7e812df4925231b40ac18dfda74392d"}
 {"id":"9","title":"Bulk status update (tssk status --all)","status":"todo","created_at":"2026-04-07T11:59:14.066065089Z","doc_hash":"2a2d435bd583204540c5736ef9924468dbed197ac7b514c9eb5dd667b3ac4a36"}
@@ -18,11 +18,11 @@
 {"id":"18","title":"Integration test suite (end-to-end CLI tests)","status":"todo","dependencies":["10","8","6","13"],"created_at":"2026-04-07T12:00:52.287264899Z","doc_hash":"f259d9c5d13c6270881e33f3f7c9d74227febdd6b596cac4ab4ddf4dee8080c3"}
 {"id":"19","title":"Performance profiling for large task lists","status":"todo","created_at":"2026-04-07T12:00:52.301973897Z","doc_hash":"c561c39021ca0a1b108cdd6b0f4df284a8b262bd563cc38be5868703434aabe0"}
 {"id":"20","title":"Security review and dependency audit","status":"todo","dependencies":["34"],"created_at":"2026-04-07T12:00:52.31410765Z","doc_hash":"4361bbcbed66e323e017fbf5892c7d077f43217c03ede9ef3a9f49032062425e"}
-{"id":"21","title":"Freeze and document public CLI API surface","status":"todo","created_at":"2026-04-07T14:22:41.953063076Z","doc_hash":"6e603cb26267f0ab11b58defcc7d61808bb573f0e78ca0e33e5c585f42f0c86e"}
+{"id":"21","title":"Freeze and document public CLI API surface","status":"todo","dependencies":["18"],"created_at":"2026-04-07T14:22:41.953063076Z","doc_hash":"6e603cb26267f0ab11b58defcc7d61808bb573f0e78ca0e33e5c585f42f0c86e"}
 {"id":"22","title":"Full documentation site (MkDocs or Hugo)","status":"todo","dependencies":["21"],"created_at":"2026-04-07T14:22:41.963851571Z","doc_hash":"c2cdbc38930b1e68a1334ece37ce128a58be503e17676825bb10336364d3ac91"}
-{"id":"23","title":"Homebrew formula / package manager distribution","status":"todo","created_at":"2026-04-07T14:22:41.977188788Z","doc_hash":"712aa20501187ac5491fd38d61299262e49a07c012e549bbde02113169c4d4d8"}
+{"id":"23","title":"Homebrew formula / package manager distribution","status":"todo","dependencies":["21"],"created_at":"2026-04-07T14:22:41.977188788Z","doc_hash":"712aa20501187ac5491fd38d61299262e49a07c012e549bbde02113169c4d4d8"}
 {"id":"24","title":"Release candidate testing and bug fixing","status":"todo","created_at":"2026-04-07T14:22:41.986182778Z","doc_hash":"4abbe8221206189f2717c5f9530339816d7f78bffa6d281b7326c0a2283397af"}
-{"id":"25","title":"External security audit","status":"todo","created_at":"2026-04-07T14:22:41.994824011Z","doc_hash":"7d7da98dc33847aee93e385ca2236b9aa4fa5743e261b8181e14f512999d2efc"}
+{"id":"25","title":"External security audit","status":"todo","dependencies":["20"],"created_at":"2026-04-07T14:22:41.994824011Z","doc_hash":"7d7da98dc33847aee93e385ca2236b9aa4fa5743e261b8181e14f512999d2efc"}
 {"id":"26","title":"v1.0 GA release with pre-built binaries","status":"todo","dependencies":["21","22","23","25"],"created_at":"2026-04-07T14:22:42.009496068Z","doc_hash":"2bb6cd6e8624218db9bc456dde3dba466f9bd5ba566d2e42deeac52e176cd26a"}
 {"id":"27","title":"Plugin/hook system for custom automation","status":"todo","created_at":"2026-04-07T14:23:03.04930747Z","doc_hash":"cbf16cb4352d9f1975ca37710757cf398de22b889eafe61eca1e00a3517a2ffa"}
 {"id":"28","title":"Remote storage backend (S3, GitHub Gist, etc.)","status":"todo","created_at":"2026-04-07T14:23:03.058334234Z","doc_hash":"006569ec5c5dd7fcd8a3d9aba040cfec7b671956edca90d4e77fe12f63dcdbf0"}
