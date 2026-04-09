@@ -17,6 +17,12 @@ func BenchmarkLoadAll(b *testing.B) {
 	backend := &mockLoadBackend{data: data}
 	s := NewWithBackend(backend)
 
+	// Warm the cache to measure steady-state performance.
+	_, err := s.Get("1000")
+	if err != nil {
+		b.Fatal(err)
+	}
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		tasks, err := s.LoadAll()

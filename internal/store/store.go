@@ -59,6 +59,9 @@ func (s *Store) Metrics() *Metrics {
 
 // LoadAll reads all tasks from the backend.  Returns an empty slice when
 // the store is empty or has not been initialised yet.
+//
+// The returned slice and the task pointers within it are owned by the Store.
+// Callers must not mutate the returned tasks or the slice.
 func (s *Store) LoadAll() ([]*task.Task, error) {
 	if s.cache != nil {
 		return s.cache, nil
@@ -99,6 +102,9 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 		}
 	}
 	if err := s.backend.WriteTasksData(buf.Bytes()); err != nil {
+		// Invalidate the cache on failure because 'tasks' (which likely
+		// contains in-memory mutations) was not successfully persisted.
+		s.cache = nil
 		return fmt.Errorf("saving tasks: %w", err)
 	}
 	s.cache = tasks
