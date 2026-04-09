@@ -9,3 +9,7 @@
 ## 2025-05-15 - Iteration Overhead in Search Logic
 **Learning:** An attempt to combine two loops (one for exact match, one for prefix match) into a single pass actually doubled the latency for exact matches. This was because the combined loop performed prefix checks for every element even when looking for an exact match.
 **Action:** Keep exact match and prefix match passes separate if the exact match is expected to be the hot path, to avoid prefix-checking overhead.
+
+## 2025-05-16 - In-memory Caching for File-backed Store
+**Learning:** For a CLI tool that frequently re-reads a small-to-medium sized metadata file (JSONL), adding a simple in-memory cache in the `Store` object provides a massive performance win. By caching the parsed `[]*task.Task` after the first `LoadAll` and updating it during `saveAll`, we reduced `Get` latency from ~2.39ms to ~853ns (a ~2800x improvement) by eliminating redundant disk I/O and JSON decoding.
+**Action:** Implement "load-once, read-many" caching for state that is unlikely to be modified externally during the short lifecycle of a CLI command.
