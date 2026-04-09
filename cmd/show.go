@@ -64,33 +64,34 @@ func showFromMultiStore(qualifiedID string) error {
 		return err
 	}
 
-	// Get the correct store to read detail from.
-	if ct.Collection == "" {
-		// Primary store.
+	cfg, err := store.ConfigFromFileAndEnv(projectRoot())
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	// ct.Collection is "" for an unnamed primary store, or cfg.Name for a
+	// named primary store.  In both cases we use the primary store directly.
+	if ct.Collection == "" || ct.Collection == cfg.Name {
 		s, err := openStore()
 		if err != nil {
 			return err
 		}
 		printTask(s, ct.Task)
-	} else {
-		// Named collection - open its store directly.
-		cfg, err := store.ConfigFromFileAndEnv(projectRoot())
-		if err != nil {
-			return fmt.Errorf("loading config: %w", err)
-		}
-		for _, cc := range cfg.Collections {
-			if cc.Name == ct.Collection {
-				collStore, err := store.CollectionStoreFromConfig(cc)
-				if err != nil {
-					return fmt.Errorf("opening collection store: %w", err)
-				}
-				printTask(collStore, ct.Task)
-				return nil
-			}
-		}
-		return fmt.Errorf("collection %q not found in configuration", ct.Collection)
+		return nil
 	}
-	return nil
+
+	// Named secondary collection - open its store directly.
+	for _, cc := range cfg.Collections {
+		if cc.Name == ct.Collection {
+			collStore, err := store.CollectionStoreFromConfig(cc)
+			if err != nil {
+				return fmt.Errorf("opening collection store: %w", err)
+			}
+			printTask(collStore, ct.Task)
+			return nil
+		}
+	}
+	return fmt.Errorf("collection %q not found in configuration", ct.Collection)
 }
 
 // printTask displays a task's metadata and detail content.
