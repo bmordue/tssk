@@ -230,12 +230,18 @@ func (s *Store) RemoveDep(id, dep string) error {
 
 // ReadDetail returns the markdown detail text for a task.
 func (s *Store) ReadDetail(t *task.Task) (string, error) {
-	// Use truncated hash for filename based on displayHashLength
+	// Use truncated hash for filename based on displayHashLength.
 	filenameHash := t.DocHash
 	if s.displayHashLength > 0 && s.displayHashLength < len(t.DocHash) {
 		filenameHash = t.DocHash[:s.displayHashLength]
 	}
+
 	data, err := s.backend.ReadDetail(filenameHash)
+	if err != nil && errors.Is(err, ErrNotFound) && filenameHash != t.DocHash {
+		// Backward compatibility: older versions stored details using the
+		// full hash as the filename, so fall back to that legacy location.
+		data, err = s.backend.ReadDetail(t.DocHash)
+	}
 	if err != nil {
 		return "", fmt.Errorf("reading detail: %w", err)
 	}

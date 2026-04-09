@@ -112,7 +112,7 @@ Tasks are stored relative to the project root:
 - `.tsks/tasks.jsonl` - Task metadata in JSONL format, one record per line
 - `.tsks/docs/` - Markdown detail files, one per task that has detail text
 
-> **Note:** tssk does not migrate existing data when storage settings change. If you alter the tasks file path, docs directory, or backend after creating tasks, tssk will treat the new location as empty and your existing tasks will remain at the old location — invisible to tssk until you manually move them. Detail files are named using the first N characters of the SHA-256 hash of the task metadata, where N is controlled by `display_hash_length` (defaults to 9).
+> **Note:** tssk does not migrate existing data when storage settings change. If you alter the tasks file path, docs directory, or backend after creating tasks, tssk will treat the new location as empty and your existing tasks will remain at the old location — invisible to tssk until you manually move them. Detail files are named using the first N characters of the SHA-256 hash of the task metadata, where N is controlled by `display_hash_length` (defaults to 9). This also has upgrade and migration implications: repositories created with earlier versions may have detail files named with the full 64-character SHA-256 hash, and changing `display_hash_length` after tasks already exist will change the expected detail filenames, making existing detail files appear missing until you manually rename or copy them. For existing repositories, keep `display_hash_length=64` unless you also migrate the existing detail filenames to the new length.
 
 ## Configuration
 
