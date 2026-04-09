@@ -81,17 +81,12 @@ type Config struct {
 	Collections []CollectionConfig
 }
 
-// ConfigFromEnv builds a Config by reading environment variables, falling
-// back to the provided root directory for the local backend.
-func ConfigFromEnv(root string) (*Config, error) {
-	backendStr := os.Getenv(EnvBackend)
-	if backendStr == "" {
-		backendStr = string(BackendLocal)
+func applyEnvOverrides(cfg *Config) error {
+	if s := os.Getenv(EnvBackend); s != "" {
+		cfg.Backend = BackendType(s)
 	}
-
-	cfg := &Config{
-		Backend: BackendType(backendStr),
-		Root:    root,
+	if cfg.Backend == "" {
+		cfg.Backend = BackendLocal
 	}
 
 	if s := os.Getenv(EnvTasksFile); s != "" {
@@ -103,7 +98,7 @@ func ConfigFromEnv(root string) (*Config, error) {
 	if s := os.Getenv(EnvDisplayHashLength); s != "" {
 		n, err := strconv.Atoi(s)
 		if err != nil || n < 1 || n > 64 {
-			return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvDisplayHashLength, s)
+			return fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvDisplayHashLength, s)
 		}
 		cfg.DisplayHashLength = n
 	}
@@ -112,25 +107,41 @@ func ConfigFromEnv(root string) (*Config, error) {
 	case BackendLocal:
 		// Nothing extra to parse.
 	case BackendS3:
-		timeout := 30 * time.Second
+		if s := os.Getenv(EnvS3Bucket); s != "" {
+			cfg.S3.Bucket = s
+		}
+		if s := os.Getenv(EnvS3Prefix); s != "" {
+			cfg.S3.Prefix = s
+		}
+		if s := os.Getenv(EnvS3Endpoint); s != "" {
+			cfg.S3.Endpoint = s
+		}
+		if s := os.Getenv(EnvS3Region); s != "" {
+			cfg.S3.Region = s
+		}
 		if s := os.Getenv(EnvS3TimeoutSec); s != "" {
 			secs, err := strconv.Atoi(s)
 			if err != nil || secs <= 0 {
-				return nil, fmt.Errorf("invalid %s value %q: must be a positive integer", EnvS3TimeoutSec, s)
+				return fmt.Errorf("invalid %s value %q: must be a positive integer", EnvS3TimeoutSec, s)
 			}
-			timeout = time.Duration(secs) * time.Second
+			cfg.S3.RequestTimeout = time.Duration(secs) * time.Second
 		}
-		cfg.S3 = S3Config{
-			Bucket:         os.Getenv(EnvS3Bucket),
-			Prefix:         os.Getenv(EnvS3Prefix),
-			Endpoint:       os.Getenv(EnvS3Endpoint),
-			Region:         os.Getenv(EnvS3Region),
-			RequestTimeout: timeout,
+		if cfg.S3.RequestTimeout <= 0 {
+			cfg.S3.RequestTimeout = 30 * time.Second
 		}
 	default:
-		return nil, fmt.Errorf("unknown storage backend %q (valid values: local, s3)", cfg.Backend)
+		return fmt.Errorf("unknown storage backend %q (valid values: local, s3)", cfg.Backend)
 	}
+	return nil
+}
 
+// ConfigFromEnv builds a Config by reading environment variables, falling
+// back to the provided root directory for the local backend.
+func ConfigFromEnv(root string) (*Config, error) {
+	cfg := &Config{Root: root}
+	if err := applyEnvOverrides(cfg); err != nil {
+		return nil, err
+	}
 	return cfg, nil
 }
 
@@ -300,55 +311,8 @@ func ConfigFromFileAndEnv(root string) (*Config, error) {
 	}
 
 	// Apply env var overrides – env vars always win.
-	if s := os.Getenv(EnvBackend); s != "" {
-		cfg.Backend = BackendType(s)
-	}
-	if cfg.Backend == "" {
-		cfg.Backend = BackendLocal
-	}
-
-	if s := os.Getenv(EnvTasksFile); s != "" {
-		cfg.TasksFile = s
-	}
-	if s := os.Getenv(EnvDocsDir); s != "" {
-		cfg.DocsDir = s
-	}
-	if s := os.Getenv(EnvDisplayHashLength); s != "" {
-		n, err := strconv.Atoi(s)
-		if err != nil || n < 1 || n > 64 {
-			return nil, fmt.Errorf("invalid %s value %q: must be an integer between 1 and 64", EnvDisplayHashLength, s)
-		}
-		cfg.DisplayHashLength = n
-	}
-
-	switch cfg.Backend {
-	case BackendLocal:
-		// Nothing extra to parse.
-	case BackendS3:
-		if s := os.Getenv(EnvS3Bucket); s != "" {
-			cfg.S3.Bucket = s
-		}
-		if s := os.Getenv(EnvS3Prefix); s != "" {
-			cfg.S3.Prefix = s
-		}
-		if s := os.Getenv(EnvS3Endpoint); s != "" {
-			cfg.S3.Endpoint = s
-		}
-		if s := os.Getenv(EnvS3Region); s != "" {
-			cfg.S3.Region = s
-		}
-		if s := os.Getenv(EnvS3TimeoutSec); s != "" {
-			secs, err := strconv.Atoi(s)
-			if err != nil || secs <= 0 {
-				return nil, fmt.Errorf("invalid %s value %q: must be a positive integer", EnvS3TimeoutSec, s)
-			}
-			cfg.S3.RequestTimeout = time.Duration(secs) * time.Second
-		}
-		if cfg.S3.RequestTimeout <= 0 {
-			cfg.S3.RequestTimeout = 30 * time.Second
-		}
-	default:
-		return nil, fmt.Errorf("unknown storage backend %q (valid values: local, s3)", cfg.Backend)
+	if err := applyEnvOverrides(cfg); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil
