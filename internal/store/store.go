@@ -141,8 +141,12 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 		return nil, fmt.Errorf("computing doc hash: %w", err)
 	}
 
-	displayKey := t.DocHash
-	if err := s.backend.WriteDetail(displayKey, []byte(detail)); err != nil {
+	// Use truncated hash for filename based on displayHashLength
+	filenameHash := t.DocHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(t.DocHash) {
+		filenameHash = t.DocHash[:s.displayHashLength]
+	}
+	if err := s.backend.WriteDetail(filenameHash, []byte(detail)); err != nil {
 		return nil, fmt.Errorf("writing detail: %w", err)
 	}
 
@@ -150,7 +154,7 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 	if err := s.saveAll(tasks); err != nil {
 		// Best-effort rollback: remove the detail we just wrote to avoid
 		// leaving it orphaned while the task list does not reference it.
-		if derr := s.backend.DeleteDetail(displayKey); derr != nil {
+		if derr := s.backend.DeleteDetail(filenameHash); derr != nil {
 			return nil, fmt.Errorf("failed to save tasks: %w; rollback also failed: %v", err, derr)
 		}
 		return nil, err
@@ -226,7 +230,12 @@ func (s *Store) RemoveDep(id, dep string) error {
 
 // ReadDetail returns the markdown detail text for a task.
 func (s *Store) ReadDetail(t *task.Task) (string, error) {
-	data, err := s.backend.ReadDetail(t.DocHash)
+	// Use truncated hash for filename based on displayHashLength
+	filenameHash := t.DocHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(t.DocHash) {
+		filenameHash = t.DocHash[:s.displayHashLength]
+	}
+	data, err := s.backend.ReadDetail(filenameHash)
 	if err != nil {
 		return "", fmt.Errorf("reading detail: %w", err)
 	}
