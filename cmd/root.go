@@ -32,4 +32,5 @@ func init() {
 	rootCmd.AddCommand(showCmd)
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(depsCmd)
+	rootCmd.AddCommand(tagsCmd)
 }

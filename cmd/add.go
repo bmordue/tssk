@@ -12,6 +12,7 @@ var (
 	addTitle  string
 	addDetail string
 	addDeps   []string
+	addTags   []string
 )
 
 var addCmd = &cobra.Command{
@@ -27,7 +28,7 @@ var addCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		t, err := s.Add(addTitle, addDetail, addDeps)
+		t, err := s.Add(addTitle, addDetail, addDeps, addTags)
 		if err != nil {
 			return err
 		}
@@ -40,4 +41,5 @@ func init() {
 	addCmd.Flags().StringVarP(&addTitle, "title", "t", "", "Task title (required)")
 	addCmd.Flags().StringVarP(&addDetail, "detail", "d", "", "Task detail text (written to a markdown file)")
 	addCmd.Flags().StringSliceVarP(&addDeps, "deps", "D", nil, "Comma-separated list of dependency task IDs")
+	addCmd.Flags().StringSliceVarP(&addTags, "tags", "T", nil, "Comma-separated list of tags")
 }

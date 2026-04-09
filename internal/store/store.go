@@ -123,7 +123,7 @@ func (s *Store) Get(id string) (*task.Task, error) {
 
 // Add creates a new task with the given title and detail text, writes the
 // detail markdown via the backend, and appends the task metadata.
-func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
+func (s *Store) Add(title, detail string, deps []string, tags []string) (*task.Task, error) {
 	tasks, err := s.LoadAll()
 	if err != nil {
 		return nil, err
@@ -134,6 +134,7 @@ func (s *Store) Add(title, detail string, deps []string) (*task.Task, error) {
 		Title:        title,
 		Status:       task.StatusTodo,
 		Dependencies: deps,
+		Tags:         tags,
 		CreatedAt:    time.Now().UTC(),
 	}
 
@@ -231,6 +232,60 @@ func (s *Store) ReadDetail(t *task.Task) (string, error) {
 		return "", fmt.Errorf("reading detail: %w", err)
 	}
 	return string(data), nil
+}
+
+// AddTags appends tags to the task identified by id.
+func (s *Store) AddTags(id string, tags []string) error {
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return err
+	}
+
+	found, err := resolveOne(tasks, id)
+	if err != nil {
+		return err
+	}
+
+	for _, tag := range tags {
+		found.AddTag(tag)
+	}
+
+	return s.saveAll(tasks)
+}
+
+// RemoveTags removes tags from the task identified by id.
+func (s *Store) RemoveTags(id string, tags []string) error {
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return err
+	}
+
+	found, err := resolveOne(tasks, id)
+	if err != nil {
+		return err
+	}
+
+	for _, tag := range tags {
+		found.RemoveTag(tag)
+	}
+
+	return s.saveAll(tasks)
+}
+
+// SetTags replaces all tags on the task identified by id.
+func (s *Store) SetTags(id string, tags []string) error {
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return err
+	}
+
+	found, err := resolveOne(tasks, id)
+	if err != nil {
+		return err
+	}
+
+	found.Tags = tags
+	return s.saveAll(tasks)
 }
 
 // resolveOne returns the unique task whose ID equals prefix exactly, or – if
