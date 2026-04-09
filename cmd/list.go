@@ -5,11 +5,26 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/bmordue/tssk/internal/task"
 )
+
+// collectedTaskOutput is the JSON representation of a task when listing across
+// all collections.  It includes the source collection name, a fully-qualified
+// task ID, and qualified dependency IDs so that output is unambiguous even when
+// IDs collide across collections.
+type collectedTaskOutput struct {
+	Collection   string      `json:"collection"`
+	ID           string      `json:"id"`
+	Title        string      `json:"title"`
+	Status       task.Status `json:"status"`
+	Dependencies []string    `json:"dependencies,omitempty"`
+	CreatedAt    time.Time   `json:"created_at"`
+	DocHash      string      `json:"doc_hash"`
+}
 
 var listStatus string
 var listAllCollections bool
@@ -109,15 +124,23 @@ func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool) error {
 	}
 
 	if jsonOutput {
-		var filtered []task.Task
+		var filtered []collectedTaskOutput
 		for _, ct := range collected {
 			if statusFilter != nil && ct.Status != *statusFilter {
 				continue
 			}
-			filtered = append(filtered, *ct.Task)
+			filtered = append(filtered, collectedTaskOutput{
+				Collection:   ct.Collection,
+				ID:           ct.QualifiedID(),
+				Title:        ct.Title,
+				Status:       ct.Status,
+				Dependencies: qualifyDeps(ct.Dependencies, ct.Collection),
+				CreatedAt:    ct.CreatedAt,
+				DocHash:      ct.DocHash,
+			})
 		}
 		if filtered == nil {
-			filtered = []task.Task{}
+			filtered = []collectedTaskOutput{}
 		}
 		return printJSON(filtered)
 	}
