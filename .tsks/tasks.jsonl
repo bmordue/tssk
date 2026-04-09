@@ -2,10 +2,10 @@
 {"id":"2","title":"JSONL store (internal/store)","status":"done","created_at":"2026-04-07T11:50:34.443489992Z","doc_hash":"c596b19317916a1d7b7cc140cb6949c310521bff312a9053a0186937b2d074b8"}
 {"id":"3","title":"Cobra CLI skeleton (add/list/show/status/deps)","status":"done","created_at":"2026-04-07T11:50:34.45213442Z","doc_hash":"59c0ed5e3947be5e33e57ca05b26f80e0c8e09f0a3803670a29a1daa44b7c1e7"}
 {"id":"4","title":"Unit tests for task and store packages","status":"done","created_at":"2026-04-07T11:50:34.464401455Z","doc_hash":"dd191539e046b179f543c288082fdd60ba8578afd6208c8ec79586864e7b0fca"}
-{"id":"5","title":"Enhanced CI/CD pipeline (security scanning, quality gates)","status":"todo","created_at":"2026-04-07T11:50:34.476767037Z","doc_hash":"a9ca028aa5db47d882d296a95dac230c4f8268a3d98aca68bf2a276d39cb0679"}
-{"id":"6","title":"Update README with usage examples and architecture overview","status":"todo","dependencies":["5"],"created_at":"2026-04-07T11:59:14.037362992Z","doc_hash":"387c3d25e9ae24daad11a571da5c6190b9dd6cf25f9ab1f2644237819ef3b1a7"}
-{"id":"7","title":"Add Nix development environment flake","status":"todo","created_at":"2026-04-07T11:59:14.046729483Z","doc_hash":"bf0a45afd851feac4476ff67e76eb45e9c6e7bea5e0b944ae42807a3ab1631db"}
-{"id":"8","title":"Task search/filter (tssk list --status, --title)","status":"todo","created_at":"2026-04-07T11:59:14.056903045Z","doc_hash":"28027da41b83fe5236a07f6fc814bfdfd7e812df4925231b40ac18dfda74392d"}
+{"id":"5","title":"Enhanced CI/CD pipeline (security scanning, quality gates)","status":"done","created_at":"2026-04-07T11:50:34.476767037Z","doc_hash":"a9ca028aa5db47d882d296a95dac230c4f8268a3d98aca68bf2a276d39cb0679"}
+{"id":"6","title":"Update README with usage examples and architecture overview","status":"done","dependencies":["5"],"created_at":"2026-04-07T11:59:14.037362992Z","doc_hash":"387c3d25e9ae24daad11a571da5c6190b9dd6cf25f9ab1f2644237819ef3b1a7"}
+{"id":"7","title":"Add Nix development environment flake","status":"done","created_at":"2026-04-07T11:59:14.046729483Z","doc_hash":"bf0a45afd851feac4476ff67e76eb45e9c6e7bea5e0b944ae42807a3ab1631db"}
+{"id":"8","title":"Task search/filter (tssk list --status, --title)","status":"done","created_at":"2026-04-07T11:59:14.056903045Z","doc_hash":"28027da41b83fe5236a07f6fc814bfdfd7e812df4925231b40ac18dfda74392d"}
 {"id":"9","title":"Bulk status update (tssk status --all)","status":"todo","created_at":"2026-04-07T11:59:14.066065089Z","doc_hash":"2a2d435bd583204540c5736ef9924468dbed197ac7b514c9eb5dd667b3ac4a36"}
 {"id":"10","title":"Machine-readable JSON output (--json flag)","status":"todo","created_at":"2026-04-07T11:59:14.075393011Z","doc_hash":"c6f3f7dd551a9b92b05f796700e55c32f71b259defce32cdc1d76659c2d9619c"}
 {"id":"11","title":"Architecture/data-flow diagrams","status":"todo","created_at":"2026-04-07T11:59:14.083772126Z","doc_hash":"942a0f78e03897b96e83d2e2709ef71e7bb0e0c52d7340c1915cdf854e5b9173"}
@@ -42,7 +42,7 @@
 {"id":"42","title":"Reduce duplication in env var parsing code","status":"todo","created_at":"2026-04-09T14:23:35.601104925Z","doc_hash":"7a4e0cadaee16ceaefd3b11f581212131958a74be2fbbcc15fbbc5b027c66c5e"}
 {"id":"43","title":"Remove Code Duplication","status":"todo","created_at":"2026-04-09T14:24:16.176880823Z","doc_hash":"e7e6245498cb75e0cb79ad3edfd7786dbfbd6c3c064944deb7e5e5c9741ef408"}
 {"id":"44","title":"Add tssk Task Management","status":"todo","created_at":"2026-04-09T14:24:24.186223473Z","doc_hash":"f9bd092fae9ab448c4dd9c96c29bec66d74c1290a2867f1810a0e2b0538d45b3"}
-{"id":"45","title":"Move default config file location","status":"todo","created_at":"2026-04-09T14:24:31.170932152Z","doc_hash":"f5d4cc4297649eb790f45490cbf4b417af6d435ee9c748aa1cfa93c26e456f99"}
+{"id":"45","title":"Move default config file location","status":"done","created_at":"2026-04-09T14:24:31.170932152Z","doc_hash":"f5d4cc4297649eb790f45490cbf4b417af6d435ee9c748aa1cfa93c26e456f99"}
 {"id":"46","title":"Add 'removed' status and command","status":"todo","created_at":"2026-04-09T14:24:42.476278878Z","doc_hash":"79d190428f3ea9194ad49cf469d22b44709385604821d3f7acdc2a5b0ffd7e6d"}
 {"id":"47","title":"Add 'ready' command to show ready tasks","status":"todo","created_at":"2026-04-09T14:25:00.522555503Z","doc_hash":"2204e21beba0fca434468fd6fa6a47834cecde92c1b4dff03bf1093f51487f79"}
 {"id":"48","title":"Add command to tidy up docs directory","status":"todo","created_at":"2026-04-09T14:25:09.509594234Z","doc_hash":"af29758803d882af78a695547aaa46151e800e7f466a6b4ff67f7001629e2218"}
