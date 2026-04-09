@@ -121,8 +121,10 @@ func (s *Store) Get(id string) (*task.Task, error) {
 	return resolveOne(tasks, id)
 }
 
-// Add creates a new task with the given title and detail text, writes the
-// detail markdown via the backend, and appends the task metadata.
+// Add creates a new task with the given title and detail text, using deps as
+// the initial dependency task IDs and tags as the initial tags assigned to the
+// task, writes the detail markdown via the backend, and appends the task
+// metadata.
 func (s *Store) Add(title, detail string, deps []string, tags []string) (*task.Task, error) {
 	tasks, err := s.LoadAll()
 	if err != nil {

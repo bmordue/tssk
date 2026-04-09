@@ -34,7 +34,7 @@ var listJSON bool
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List tasks",
-	Long:  `List all tasks, optionally filtered by status.`,
+	Long:  `List all tasks, optionally filtered by status or tag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var statusFilter *task.Status
 		if listStatus != "" {

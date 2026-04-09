@@ -18,7 +18,7 @@ var (
 var addCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a new task",
-	Long:  `Add a new task with a title, optional detail text and optional dependencies.`,
+	Long:  `Add a new task with a title, optional detail text, optional dependencies and optional tags.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if strings.TrimSpace(addTitle) == "" {
 			return fmt.Errorf("--title is required")

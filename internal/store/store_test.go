@@ -251,3 +251,75 @@ func TestReadDetail(t *testing.T) {
 		t.Errorf("unexpected detail: %q", got)
 	}
 }
+
+func TestAddTagsDeduplication(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Tag test task", "", nil, []string{"alpha"})
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Adding a duplicate tag should not produce a second entry.
+	if err := s.AddTags(tk.ID, []string{"alpha", "beta"}); err != nil {
+		t.Fatalf("AddTags: %v", err)
+	}
+
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get after AddTags: %v", err)
+	}
+	if len(reloaded.Tags) != 2 {
+		t.Errorf("expected 2 tags after dedup, got %d: %v", len(reloaded.Tags), reloaded.Tags)
+	}
+	if !reloaded.HasTag("alpha") || !reloaded.HasTag("beta") {
+		t.Errorf("expected tags alpha and beta, got %v", reloaded.Tags)
+	}
+}
+
+func TestRemoveTagsNonExistent(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"})
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Removing a tag that does not exist should succeed without error.
+	if err := s.RemoveTags(tk.ID, []string{"beta", "gamma"}); err != nil {
+		t.Fatalf("RemoveTags: %v", err)
+	}
+
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get after RemoveTags: %v", err)
+	}
+	if len(reloaded.Tags) != 1 || !reloaded.HasTag("alpha") {
+		t.Errorf("expected only tag alpha, got %v", reloaded.Tags)
+	}
+}
+
+func TestSetTagsPersistence(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("SetTags persistence test", "", nil, []string{"old"})
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	if err := s.SetTags(tk.ID, []string{"new1", "new2"}); err != nil {
+		t.Fatalf("SetTags: %v", err)
+	}
+
+	// Reload from disk to confirm persistence.
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get after SetTags: %v", err)
+	}
+	if len(reloaded.Tags) != 2 {
+		t.Errorf("expected 2 tags, got %d: %v", len(reloaded.Tags), reloaded.Tags)
+	}
+	if !reloaded.HasTag("new1") || !reloaded.HasTag("new2") {
+		t.Errorf("expected tags new1 and new2, got %v", reloaded.Tags)
+	}
+	if reloaded.HasTag("old") {
+		t.Error("expected old tag to be replaced by SetTags")
+	}
+}
