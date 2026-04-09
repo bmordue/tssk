@@ -12,9 +12,7 @@ import (
 	"github.com/bmordue/tssk/internal/task"
 )
 
-<<<<<<< aggregate-multi-repos
 var showAllCollections bool
-=======
 var showJSON bool
 
 // showTaskOutput is the JSON structure for tssk show --json
@@ -22,7 +20,6 @@ type showTaskOutput struct {
 	task.Task
 	Detail string `json:"detail,omitempty"`
 }
->>>>>>> main
 
 var showCmd = &cobra.Command{
 	Use:   "show <task-id>",
@@ -53,7 +50,20 @@ the primary store.`,
 			return err
 		}
 
-<<<<<<< aggregate-multi-repos
+		if showJSON {
+			output := showTaskOutput{
+				Task: *t,
+			}
+			detail, readErr := s.ReadDetail(t)
+			if readErr != nil {
+				// Detail file missing is non-fatal; surface a warning.
+				fmt.Fprintf(os.Stderr, "warning: could not read detail file: %v\n", readErr)
+			} else if detail != "" {
+				output.Detail = detail
+			}
+			return printJSON(output)
+		}
+
 		printTask(s, t)
 		return nil
 	},
@@ -71,28 +81,6 @@ func showFromMultiStore(qualifiedID string) error {
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return fmt.Errorf("task %s not found", qualifiedID)
-=======
-		if showJSON {
-			output := showTaskOutput{
-				Task: *t,
-			}
-			detail, readErr := s.ReadDetail(t)
-			if readErr != nil {
-				// Detail file missing is non-fatal; surface a warning.
-				fmt.Fprintf(os.Stderr, "warning: could not read detail file: %v\n", readErr)
-			} else if detail != "" {
-				output.Detail = detail
-			}
-			return printJSON(output)
-		}
-
-		fmt.Fprintf(os.Stdout, "ID:         %s\n", t.ID)
-		fmt.Fprintf(os.Stdout, "Title:      %s\n", t.Title)
-		fmt.Fprintf(os.Stdout, "Status:     %s\n", t.Status)
-		fmt.Fprintf(os.Stdout, "Created:    %s\n", t.CreatedAt.Format("2006-01-02 15:04:05 UTC"))
-		if len(t.Dependencies) > 0 {
-			fmt.Fprintf(os.Stdout, "Depends on: %s\n", strings.Join(t.Dependencies, ", "))
->>>>>>> main
 		}
 		return err
 	}
@@ -109,6 +97,9 @@ func showFromMultiStore(qualifiedID string) error {
 		if err != nil {
 			return err
 		}
+		if showJSON {
+			return printTaskJSON(s, ct.Task)
+		}
 		printTask(s, ct.Task)
 		return nil
 	}
@@ -120,11 +111,29 @@ func showFromMultiStore(qualifiedID string) error {
 			if err != nil {
 				return fmt.Errorf("opening collection store: %w", err)
 			}
+			if showJSON {
+				return printTaskJSON(collStore, ct.Task)
+			}
 			printTask(collStore, ct.Task)
 			return nil
 		}
 	}
 	return fmt.Errorf("collection %q not found in configuration", ct.Collection)
+}
+
+// printTaskJSON emits a task as JSON, including its detail content.
+func printTaskJSON(s *store.Store, t *task.Task) error {
+	output := showTaskOutput{
+		Task: *t,
+	}
+	detail, readErr := s.ReadDetail(t)
+	if readErr != nil {
+		// Detail file missing is non-fatal; surface a warning.
+		fmt.Fprintf(os.Stderr, "warning: could not read detail file: %v\n", readErr)
+	} else if detail != "" {
+		output.Detail = detail
+	}
+	return printJSON(output)
 }
 
 // printTask displays a task's metadata and detail content.
@@ -149,8 +158,5 @@ func printTask(s *store.Store, t *task.Task) {
 
 func init() {
 	showCmd.Flags().BoolVarP(&showAllCollections, "all-collections", "a", false, "Resolve task ID across all configured collections")
-}
-
-func init() {
 	showCmd.Flags().BoolVar(&showJSON, "json", false, "Output task as JSON")
 }
