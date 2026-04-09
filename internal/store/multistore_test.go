@@ -20,7 +20,7 @@ func newNamedTempStore(t *testing.T, titles ...string) (*store.Store, string) {
 	dir := t.TempDir()
 	s := store.New(dir)
 	for _, title := range titles {
-		if _, err := s.Add(title, "", nil); err != nil {
+		if _, err := s.Add(title, "", nil, nil); err != nil {
 			t.Fatalf("Add %q: %v", title, err)
 		}
 	}
@@ -346,7 +346,7 @@ func TestMultiStoreFromConfig_NoCollections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFromConfig: %v", err)
 	}
-	if _, addErr := s.Add("Hello", "", nil); addErr != nil {
+	if _, addErr := s.Add("Hello", "", nil, nil); addErr != nil {
 		t.Fatalf("Add: %v", addErr)
 	}
 
@@ -380,11 +380,11 @@ func TestMultiStoreFromConfig_NamedPrimary(t *testing.T) {
 
 	// Add a task to the primary and one to the named collection.
 	primaryS := store.New(root)
-	if _, addErr := primaryS.Add("Primary task", "", nil); addErr != nil {
+	if _, addErr := primaryS.Add("Primary task", "", nil, nil); addErr != nil {
 		t.Fatalf("Add primary: %v", addErr)
 	}
 	collS := store.New(collRoot)
-	if _, addErr := collS.Add("Coll task", "", nil); addErr != nil {
+	if _, addErr := collS.Add("Coll task", "", nil, nil); addErr != nil {
 		t.Fatalf("Add coll: %v", addErr)
 	}
 

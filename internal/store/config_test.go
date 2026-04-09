@@ -108,7 +108,7 @@ func TestNewFromConfig_CustomTasksFileAndDocsDir(t *testing.T) {
 		t.Fatalf("NewFromConfig: %v", err)
 	}
 	// Add a task to exercise the custom paths.
-	task, err := s.Add("Test task", "detail text", nil)
+	task, err := s.Add("Test task", "detail text", nil, nil)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestNewFromConfig_CustomHashLength(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFromConfig: %v", err)
 	}
-	task, err := s.Add("Hash length test", "some detail", nil)
+	task, err := s.Add("Hash length test", "some detail", nil, nil)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -392,7 +392,7 @@ func TestConfigFromFileAndEnv_FileUsedForStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewFromConfig: %v", err)
 	}
-	task, err := s.Add("File config task", "some detail", nil)
+	task, err := s.Add("File config task", "some detail", nil, nil)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}

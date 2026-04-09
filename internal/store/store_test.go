@@ -30,7 +30,7 @@ func TestLoadAllEmpty(t *testing.T) {
 func TestAddAndGet(t *testing.T) {
 	s := newTempStore(t)
 
-	tk, err := s.Add("My first task", "Some detail text", nil)
+	tk, err := s.Add("My first task", "Some detail text", nil, nil)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestAddCreatesDetailFile(t *testing.T) {
 	s := store.New(dir)
 
 	detail := "# My Task\n\nSome details here."
-	tk, err := s.Add("Test detail file", detail, nil)
+	tk, err := s.Add("Test detail file", detail, nil, nil)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestPrefixMatching(t *testing.T) {
 	s := newTempStore(t)
 	// Add 10 tasks to produce IDs "1" through "10".
 	for i := 0; i < 10; i++ {
-		if _, err := s.Add("Task", "", nil); err != nil {
+		if _, err := s.Add("Task", "", nil, nil); err != nil {
 			t.Fatalf("Add task %d: %v", i, err)
 		}
 	}
@@ -152,7 +152,7 @@ func TestAmbiguousPrefix(t *testing.T) {
 
 func TestUpdateStatus(t *testing.T) {
 	s := newTempStore(t)
-	tk, _ := s.Add("Status test", "", nil)
+	tk, _ := s.Add("Status test", "", nil, nil)
 
 	updated, err := s.UpdateStatus(tk.ID, task.StatusDone)
 	if err != nil {
@@ -174,11 +174,11 @@ func TestUpdateStatus(t *testing.T) {
 
 func TestAddAndRemoveDep(t *testing.T) {
 	s := newTempStore(t)
-	t1, err := s.Add("First task", "", nil)
+	t1, err := s.Add("First task", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Add t1: %v", err)
 	}
-	t2, err := s.Add("Second task", "", nil)
+	t2, err := s.Add("Second task", "", nil, nil)
 	if err != nil {
 		t.Fatalf("Add t2: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestAddAndRemoveDep(t *testing.T) {
 func TestMultipleTasksLoadAll(t *testing.T) {
 	s := newTempStore(t)
 	for i := 0; i < 5; i++ {
-		if _, err := s.Add("Task", "", nil); err != nil {
+		if _, err := s.Add("Task", "", nil, nil); err != nil {
 			t.Fatalf("Add task %d: %v", i, err)
 		}
 	}
@@ -241,7 +241,7 @@ func TestMultipleTasksLoadAll(t *testing.T) {
 func TestReadDetail(t *testing.T) {
 	s := newTempStore(t)
 	detail := "# Detail\n\nContent."
-	tk, _ := s.Add("Task with detail", detail, nil)
+	tk, _ := s.Add("Task with detail", detail, nil, nil)
 
 	got, err := s.ReadDetail(tk)
 	if err != nil {
@@ -249,5 +249,77 @@ func TestReadDetail(t *testing.T) {
 	}
 	if got != detail {
 		t.Errorf("unexpected detail: %q", got)
+	}
+}
+
+func TestAddTagsDeduplication(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Tag test task", "", nil, []string{"alpha"})
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Adding a duplicate tag should not produce a second entry.
+	if err := s.AddTags(tk.ID, []string{"alpha", "beta"}); err != nil {
+		t.Fatalf("AddTags: %v", err)
+	}
+
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get after AddTags: %v", err)
+	}
+	if len(reloaded.Tags) != 2 {
+		t.Errorf("expected 2 tags after dedup, got %d: %v", len(reloaded.Tags), reloaded.Tags)
+	}
+	if !reloaded.HasTag("alpha") || !reloaded.HasTag("beta") {
+		t.Errorf("expected tags alpha and beta, got %v", reloaded.Tags)
+	}
+}
+
+func TestRemoveTagsNonExistent(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"})
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	// Removing a tag that does not exist should succeed without error.
+	if err := s.RemoveTags(tk.ID, []string{"beta", "gamma"}); err != nil {
+		t.Fatalf("RemoveTags: %v", err)
+	}
+
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get after RemoveTags: %v", err)
+	}
+	if len(reloaded.Tags) != 1 || !reloaded.HasTag("alpha") {
+		t.Errorf("expected only tag alpha, got %v", reloaded.Tags)
+	}
+}
+
+func TestSetTagsPersistence(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("SetTags persistence test", "", nil, []string{"old"})
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	if err := s.SetTags(tk.ID, []string{"new1", "new2"}); err != nil {
+		t.Fatalf("SetTags: %v", err)
+	}
+
+	// Reload from disk to confirm persistence.
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get after SetTags: %v", err)
+	}
+	if len(reloaded.Tags) != 2 {
+		t.Errorf("expected 2 tags, got %d: %v", len(reloaded.Tags), reloaded.Tags)
+	}
+	if !reloaded.HasTag("new1") || !reloaded.HasTag("new2") {
+		t.Errorf("expected tags new1 and new2, got %v", reloaded.Tags)
+	}
+	if reloaded.HasTag("old") {
+		t.Error("expected old tag to be replaced by SetTags")
 	}
 }

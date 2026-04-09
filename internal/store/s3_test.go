@@ -184,7 +184,7 @@ func TestS3BackendMockWorkflow(t *testing.T) {
 	}
 	s := NewWithBackend(backend)
 
-	tk, err := s.Add("S3 task", "detail content", nil)
+	tk, err := s.Add("S3 task", "detail content", nil, nil)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}

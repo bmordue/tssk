@@ -28,12 +28,13 @@ type collectedTaskOutput struct {
 
 var listStatus string
 var listAllCollections bool
+var listTag string
 var listJSON bool
 
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List tasks",
-	Long:  `List all tasks, optionally filtered by status.`,
+	Long:  `List all tasks, optionally filtered by status or tag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var statusFilter *task.Status
 		if listStatus != "" {
@@ -45,7 +46,7 @@ var listCmd = &cobra.Command{
 		}
 
 		if listAllCollections {
-			return listAllCollectionsCmd(statusFilter, listJSON)
+			return listAllCollectionsCmd(statusFilter, listJSON, listTag)
 		}
 
 		st, err := openStore()
@@ -72,16 +73,23 @@ var listCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tSTATUS\tTITLE\tDEPS")
+		fmt.Fprintln(w, "ID\tSTATUS\tTITLE\tTAGS\tDEPS")
 		for _, t := range tasks {
 			if statusFilter != nil && t.Status != *statusFilter {
 				continue
+			}
+			if listTag != "" && !t.HasTag(listTag) {
+				continue
+			}
+			tags := "-"
+			if len(t.Tags) > 0 {
+				tags = strings.Join(t.Tags, ", ")
 			}
 			deps := "-"
 			if len(t.Dependencies) > 0 {
 				deps = strings.Join(t.Dependencies, ", ")
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", t.ID, t.Status, t.Title, deps)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", t.ID, t.Status, t.Title, tags, deps)
 		}
 		_ = w.Flush()
 		return nil
@@ -113,7 +121,7 @@ func qualifyDeps(deps []string, collection string) []string {
 
 // listAllCollectionsCmd handles --all-collections: loads tasks from every
 // configured collection and prints them with a COLLECTION column.
-func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool) error {
+func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool, tagFilter string) error {
 	ms, err := openMultiStore()
 	if err != nil {
 		return err
@@ -146,21 +154,28 @@ func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "COLLECTION\tID\tSTATUS\tTITLE\tDEPS")
+	fmt.Fprintln(w, "COLLECTION\tID\tSTATUS\tTITLE\tTAGS\tDEPS")
 	for _, ct := range collected {
 		if statusFilter != nil && ct.Status != *statusFilter {
+			continue
+		}
+		if tagFilter != "" && !ct.HasTag(tagFilter) {
 			continue
 		}
 		collLabel := ct.Collection
 		if collLabel == "" {
 			collLabel = primaryCollectionLabel
 		}
+		tags := "-"
+		if len(ct.Tags) > 0 {
+			tags = strings.Join(ct.Tags, ", ")
+		}
 		deps := "-"
 		if len(ct.Dependencies) > 0 {
 			qualified := qualifyDeps(ct.Dependencies, ct.Collection)
 			deps = strings.Join(qualified, ", ")
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", collLabel, ct.ID, ct.Status, ct.Title, deps)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", collLabel, ct.ID, ct.Status, ct.Title, tags, deps)
 	}
 	_ = w.Flush()
 	return nil
@@ -169,5 +184,6 @@ func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool) error {
 func init() {
 	listCmd.Flags().StringVarP(&listStatus, "status", "s", "", "Filter by status (todo, in-progress, done, blocked)")
 	listCmd.Flags().BoolVarP(&listAllCollections, "all-collections", "a", false, "Include tasks from all configured collections")
+	listCmd.Flags().StringVar(&listTag, "tag", "", "Filter by tag")
 	listCmd.Flags().BoolVar(&listJSON, "json", false, "Output tasks as JSON")
 }

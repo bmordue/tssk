@@ -145,6 +145,9 @@ func printTask(s *store.Store, t *task.Task) {
 	if len(t.Dependencies) > 0 {
 		fmt.Fprintf(os.Stdout, "Depends on: %s\n", strings.Join(t.Dependencies, ", "))
 	}
+	if len(t.Tags) > 0 {
+		fmt.Fprintf(os.Stdout, "Tags:       %s\n", strings.Join(t.Tags, ", "))
+	}
 	fmt.Fprintf(os.Stdout, "Doc hash:   %s\n", t.DocHash)
 
 	detail, err := s.ReadDetail(t)
