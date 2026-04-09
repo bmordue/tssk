@@ -9,7 +9,16 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/bmordue/tssk/internal/store"
+	"github.com/bmordue/tssk/internal/task"
 )
+
+var showJSON bool
+
+// showTaskOutput is the JSON structure for tssk show --json
+type showTaskOutput struct {
+	task.Task
+	Detail string `json:"detail,omitempty"`
+}
 
 var showCmd = &cobra.Command{
 	Use:   "show <task-id>",
@@ -29,6 +38,20 @@ var showCmd = &cobra.Command{
 				return fmt.Errorf("task %s not found", id)
 			}
 			return err
+		}
+
+		if showJSON {
+			output := showTaskOutput{
+				Task: *t,
+			}
+			detail, readErr := s.ReadDetail(t)
+			if readErr != nil {
+				// Detail file missing is non-fatal; surface a warning.
+				fmt.Fprintf(os.Stderr, "warning: could not read detail file: %v\n", readErr)
+			} else if detail != "" {
+				output.Detail = detail
+			}
+			return printJSON(output)
 		}
 
 		fmt.Fprintf(os.Stdout, "ID:         %s\n", t.ID)
@@ -52,4 +75,8 @@ var showCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func init() {
+	showCmd.Flags().BoolVar(&showJSON, "json", false, "Output task as JSON")
 }

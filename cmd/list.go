@@ -5,15 +5,31 @@ import (
 	"os"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	"github.com/bmordue/tssk/internal/task"
 )
 
+// collectedTaskOutput is the JSON representation of a task when listing across
+// all collections.  It includes the source collection name, a fully-qualified
+// task ID, and qualified dependency IDs so that output is unambiguous even when
+// IDs collide across collections.
+type collectedTaskOutput struct {
+	Collection   string      `json:"collection"`
+	ID           string      `json:"id"`
+	Title        string      `json:"title"`
+	Status       task.Status `json:"status"`
+	Dependencies []string    `json:"dependencies,omitempty"`
+	CreatedAt    time.Time   `json:"created_at"`
+	DocHash      string      `json:"doc_hash"`
+}
+
 var listStatus string
 var listAllCollections bool
 var listTag string
+var listJSON bool
 
 var listCmd = &cobra.Command{
 	Use:   "list",
@@ -30,7 +46,7 @@ var listCmd = &cobra.Command{
 		}
 
 		if listAllCollections {
-			return listAllCollectionsCmd(statusFilter, listTag)
+			return listAllCollectionsCmd(statusFilter, listJSON, listTag)
 		}
 
 		st, err := openStore()
@@ -40,6 +56,20 @@ var listCmd = &cobra.Command{
 		tasks, err := st.LoadAll()
 		if err != nil {
 			return err
+		}
+
+		if listJSON {
+			var filtered []task.Task
+			for _, t := range tasks {
+				if statusFilter != nil && t.Status != *statusFilter {
+					continue
+				}
+				filtered = append(filtered, *t)
+			}
+			if filtered == nil {
+				filtered = []task.Task{}
+			}
+			return printJSON(filtered)
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -91,7 +121,7 @@ func qualifyDeps(deps []string, collection string) []string {
 
 // listAllCollectionsCmd handles --all-collections: loads tasks from every
 // configured collection and prints them with a COLLECTION column.
-func listAllCollectionsCmd(statusFilter *task.Status, tagFilter string) error {
+func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool, tagFilter string) error {
 	ms, err := openMultiStore()
 	if err != nil {
 		return err
@@ -99,6 +129,28 @@ func listAllCollectionsCmd(statusFilter *task.Status, tagFilter string) error {
 	collected, err := ms.LoadAll()
 	if err != nil {
 		return err
+	}
+
+	if jsonOutput {
+		var filtered []collectedTaskOutput
+		for _, ct := range collected {
+			if statusFilter != nil && ct.Status != *statusFilter {
+				continue
+			}
+			filtered = append(filtered, collectedTaskOutput{
+				Collection:   ct.Collection,
+				ID:           ct.QualifiedID(),
+				Title:        ct.Title,
+				Status:       ct.Status,
+				Dependencies: qualifyDeps(ct.Dependencies, ct.Collection),
+				CreatedAt:    ct.CreatedAt,
+				DocHash:      ct.DocHash,
+			})
+		}
+		if filtered == nil {
+			filtered = []collectedTaskOutput{}
+		}
+		return printJSON(filtered)
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -133,4 +185,5 @@ func init() {
 	listCmd.Flags().StringVarP(&listStatus, "status", "s", "", "Filter by status (todo, in-progress, done, blocked)")
 	listCmd.Flags().BoolVarP(&listAllCollections, "all-collections", "a", false, "Include tasks from all configured collections")
 	listCmd.Flags().StringVar(&listTag, "tag", "", "Filter by tag")
+	listCmd.Flags().BoolVar(&listJSON, "json", false, "Output tasks as JSON")
 }

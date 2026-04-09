@@ -67,8 +67,8 @@ func TestAddCreatesDetailFile(t *testing.T) {
 		t.Fatalf("Add: %v", err)
 	}
 
-	// DocHash is the full 64-char hash; the file is named with the full hash.
-	docPath := filepath.Join(dir, ".tsks", "docs", tk.DocHash+".md")
+	// DocHash is the full 64-char hash; the file is named with the default display length (9).
+	docPath := filepath.Join(dir, ".tsks", "docs", tk.DocHash[:9]+".md")
 	b, err := os.ReadFile(docPath)
 	if err != nil {
 		t.Fatalf("detail file not created: %v", err)
