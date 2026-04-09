@@ -37,3 +37,5 @@
 {"id":"37","title":"R-6: Add advisory file locking in Phase 2","status":"todo","created_at":"2026-04-08T08:11:53.800848166Z","doc_hash":"2463e373c50e3adcdbc50af54e6b907d51838e13730813fc809bf0aec973dd1d"}
 {"id":"38","title":"R-7: Address CI/CD pipeline in Phase 0 (#8), add caching and parallelism","status":"todo","created_at":"2026-04-08T08:11:53.811154205Z","doc_hash":"79758415ed538dd4c394c768cc0f2f9df2b3fd79973a1e3ed55f9200da18dc20"}
 {"id":"39","title":"This task management setup (tssk meta-task)","status":"todo","created_at":"2026-04-08T08:12:58.504226597Z","doc_hash":"e5d2442f1a85086314c362509b7d57fcb852e3bfce182aad013db4dd29367845"}
+{"id":"40","title":"Add --json flag to tssk list command","status":"todo","dependencies":["10"],"created_at":"2026-04-08T15:52:37.706781966Z","doc_hash":"2ecd847daad16b3bed1d0f78fbe15bdb3379fcbdd7019dcb523e83acb8fd8e47"}
+{"id":"41","title":"Add --json flag to tssk show command","status":"todo","dependencies":["10"],"created_at":"2026-04-08T15:54:42.410792895Z","doc_hash":"8d9f1bf03f4932514bbf2d0ee54bbed4fd0c1b18d3ba1b34e0477708a3abeabc"}
