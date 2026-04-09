@@ -36,6 +36,7 @@ type Task struct {
 	Title        string    `json:"title"`
 	Status       Status    `json:"status"`
 	Dependencies []string  `json:"dependencies,omitempty"`
+	Tags         []string  `json:"tags,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	// DocHash is the SHA-256 hash of the canonical JSON representation of the
 	// immutable task metadata fields (id, title, created_at); it is also the
@@ -110,6 +111,38 @@ func (t *Task) RemoveDependency(id string) bool {
 	for i, d := range t.Dependencies {
 		if d == id {
 			t.Dependencies = append(t.Dependencies[:i], t.Dependencies[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// HasTag reports whether tag is present in the task's tag list.
+func (t *Task) HasTag(tag string) bool {
+	for _, tg := range t.Tags {
+		if tg == tag {
+			return true
+		}
+	}
+	return false
+}
+
+// AddTag appends tag to the task's tag list if not already present.
+// Returns false if tag was already present.
+func (t *Task) AddTag(tag string) bool {
+	if t.HasTag(tag) {
+		return false
+	}
+	t.Tags = append(t.Tags, tag)
+	return true
+}
+
+// RemoveTag removes tag from the task's tag list.  Returns false if tag was
+// not in the list.
+func (t *Task) RemoveTag(tag string) bool {
+	for i, tg := range t.Tags {
+		if tg == tag {
+			t.Tags = append(t.Tags[:i], t.Tags[i+1:]...)
 			return true
 		}
 	}
