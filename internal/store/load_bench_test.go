@@ -47,14 +47,16 @@ func BenchmarkGet(b *testing.B) {
 	s := NewWithBackend(backend)
 
 	// Warm the cache to measure steady-state cached performance.
-	_, err := s.Get("1000")
+	// "1000" is the ID of the last task (equal to numTasks).
+	lastID := fmt.Sprintf("%d", numTasks)
+	_, err := s.Get(lastID)
 	if err != nil {
 		b.Fatal(err)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := s.Get("1000")
+		_, err := s.Get(lastID)
 		if err != nil {
 			b.Fatal(err)
 		}
