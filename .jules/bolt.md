@@ -13,3 +13,7 @@
 ## 2025-05-16 - In-memory Caching for File-backed Store
 **Learning:** For a CLI tool that frequently re-reads a small-to-medium sized metadata file (JSONL), adding a simple in-memory cache in the `Store` object provides a massive performance win. By caching the parsed `[]*task.Task` after the first `LoadAll` and updating it during `saveAll`, we reduced `Get` latency from ~2.39ms to ~853ns (a ~2800x improvement) by eliminating redundant disk I/O and JSON decoding.
 **Action:** Implement "load-once, read-many" caching for state that is unlikely to be modified externally during the short lifecycle of a CLI command.
+
+## 2026-04-09 - O(1) Exact ID Lookups with Task Map
+**Learning:** For a task management tool where tasks are frequently referenced by sequential IDs, a linear scan (O(n)) for exact matches becomes a bottleneck as the task list grows. By supplementing the task slice with an in-memory hash map (`idMap map[string]*task.Task`), we can reduce exact-match lookup time to O(1). In our benchmarks with 1000 tasks, this reduced `Get` latency from ~856ns to ~29ns (a ~30x improvement).
+**Action:** Maintain a companion hash map for O(1) lookups whenever a collection of objects is frequently queried by a unique identifier, especially in performance-sensitive paths like CLI command execution. Ensure the map is kept in sync with the primary data store (slice/cache) and invalidated on failure.

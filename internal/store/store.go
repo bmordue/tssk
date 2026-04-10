@@ -33,6 +33,7 @@ type Store struct {
 	metrics           *Metrics
 	displayHashLength int
 	cache             []*task.Task
+	idMap             map[string]*task.Task
 }
 
 // New creates a Store backed by the local filesystem rooted at root.
@@ -73,12 +74,14 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 	}
 	if len(data) == 0 {
 		s.cache = []*task.Task{}
+		s.idMap = make(map[string]*task.Task)
 		return s.cache, nil
 	}
 
 	// Pre-allocate the tasks slice to reduce re-allocations.
 	lineCount := bytes.Count(data, []byte("\n"))
 	tasks := make([]*task.Task, 0, lineCount)
+	idMap := make(map[string]*task.Task, lineCount)
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	for decoder.More() {
@@ -87,8 +90,10 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 			return nil, fmt.Errorf("parsing tasks: %w", err)
 		}
 		tasks = append(tasks, t)
+		idMap[t.ID] = t
 	}
 	s.cache = tasks
+	s.idMap = idMap
 	return tasks, nil
 }
 
@@ -105,9 +110,14 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 		// Invalidate the cache on failure because 'tasks' (which likely
 		// contains in-memory mutations) was not successfully persisted.
 		s.cache = nil
+		s.idMap = nil
 		return fmt.Errorf("saving tasks: %w", err)
 	}
 	s.cache = tasks
+	s.idMap = make(map[string]*task.Task, len(tasks))
+	for _, t := range tasks {
+		s.idMap[t.ID] = t
+	}
 	return nil
 }
 
@@ -118,7 +128,7 @@ func (s *Store) Get(id string) (*task.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return resolveOne(tasks, id)
+	return s.resolveOne(tasks, id)
 }
 
 // Add creates a new task with the given title and detail text, using deps as
@@ -172,7 +182,7 @@ func (s *Store) UpdateStatus(id string, status task.Status) (*task.Task, error) 
 		return nil, err
 	}
 
-	found, err := resolveOne(tasks, id)
+	found, err := s.resolveOne(tasks, id)
 	if err != nil {
 		return nil, err
 	}
@@ -191,11 +201,11 @@ func (s *Store) AddDep(id, dep string) error {
 		return err
 	}
 
-	found, err := resolveOne(tasks, id)
+	found, err := s.resolveOne(tasks, id)
 	if err != nil {
 		return err
 	}
-	depTask, err := resolveOne(tasks, dep)
+	depTask, err := s.resolveOne(tasks, dep)
 	if err != nil {
 		return fmt.Errorf("dependency: %w", err)
 	}
@@ -215,11 +225,11 @@ func (s *Store) RemoveDep(id, dep string) error {
 		return err
 	}
 
-	found, err := resolveOne(tasks, id)
+	found, err := s.resolveOne(tasks, id)
 	if err != nil {
 		return err
 	}
-	depTask, err := resolveOne(tasks, dep)
+	depTask, err := s.resolveOne(tasks, dep)
 	if err != nil {
 		return fmt.Errorf("dependency: %w", err)
 	}
@@ -258,7 +268,7 @@ func (s *Store) AddTags(id string, tags []string) error {
 		return err
 	}
 
-	found, err := resolveOne(tasks, id)
+	found, err := s.resolveOne(tasks, id)
 	if err != nil {
 		return err
 	}
@@ -277,7 +287,7 @@ func (s *Store) RemoveTags(id string, tags []string) error {
 		return err
 	}
 
-	found, err := resolveOne(tasks, id)
+	found, err := s.resolveOne(tasks, id)
 	if err != nil {
 		return err
 	}
@@ -296,7 +306,7 @@ func (s *Store) SetTags(id string, tags []string) error {
 		return err
 	}
 
-	found, err := resolveOne(tasks, id)
+	found, err := s.resolveOne(tasks, id)
 	if err != nil {
 		return err
 	}
@@ -309,13 +319,12 @@ func (s *Store) SetTags(id string, tags []string) error {
 // no exact match exists – the unique task whose ID begins with prefix.
 // Returns ErrNotFound when no task matches, ErrAmbiguous when multiple tasks
 // share the same prefix.
-func resolveOne(tasks []*task.Task, prefix string) (*task.Task, error) {
+func (s *Store) resolveOne(tasks []*task.Task, prefix string) (*task.Task, error) {
 	// Exact match always wins over prefix matching.
-	for _, t := range tasks {
-		if t.ID == prefix {
-			return t, nil
-		}
+	if t, ok := s.idMap[prefix]; ok {
+		return t, nil
 	}
+
 	// Collect all tasks whose ID begins with prefix.
 	var matches []*task.Task
 	for _, t := range tasks {
