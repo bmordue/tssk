@@ -213,7 +213,7 @@
 
             // Detail markdown
             if (task.detail) {
-                modalDetail.innerHTML = marked.parse(task.detail);
+                modalDetail.innerHTML = sanitizeHtml(marked.parse(task.detail));
             } else {
                 modalDetail.innerHTML = '<p style="color: var(--text-secondary);">No detail text available.</p>';
             }
@@ -263,6 +263,24 @@
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('tssk-theme', newTheme);
         themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Sanitize HTML to prevent XSS from rendered markdown
+    function sanitizeHtml(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const dangerous = doc.querySelectorAll('script,style,link,object,embed,iframe,form');
+        dangerous.forEach(el => el.remove());
+        doc.querySelectorAll('*').forEach(el => {
+            Array.from(el.attributes).forEach(attr => {
+                if (attr.name.startsWith('on') ||
+                    (attr.name === 'href' && /^javascript:/i.test(attr.value)) ||
+                    (attr.name === 'src' && /^javascript:/i.test(attr.value))) {
+                    el.removeAttribute(attr.name);
+                }
+            });
+        });
+        return doc.body.innerHTML;
     }
 
     // Escape HTML

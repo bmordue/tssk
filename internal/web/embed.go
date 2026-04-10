@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-//go:embed index.html style.css app.js
+//go:embed index.html style.css app.js marked.min.js
 var assetsFS embed.FS
 
 // Assets returns an http.FileSystem for the embedded web assets.

@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/spf13/cobra"
 
@@ -21,6 +23,10 @@ var (
 	serveHost string
 	serveOpen bool
 )
+
+// validTaskID matches task IDs that consist only of alphanumeric characters
+// and hyphens, with hyphens only appearing between alphanumeric characters.
+var validTaskID = regexp.MustCompile(`^[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*$`)
 
 // taskDetailOutput is the JSON structure for a task with its detail text
 type taskDetailOutput struct {
@@ -43,6 +49,7 @@ var serveCmd = &cobra.Command{
 			return err
 		}
 
+		var mu sync.Mutex
 		mux := http.NewServeMux()
 
 		// Serve static assets
@@ -57,10 +64,12 @@ var serveCmd = &cobra.Command{
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 				return
 			}
+			mu.Lock()
+			defer mu.Unlock()
 			handleListTasks(w, st)
 		})
 
-		// API: Get single task
+		// API: Get single task or update status
 		mux.HandleFunc("/api/tasks/", func(w http.ResponseWriter, r *http.Request) {
 			// Extract task ID from path: /api/tasks/{id} or /api/tasks/{id}/status
 			path := strings.TrimPrefix(r.URL.Path, "/api/tasks/")
@@ -68,7 +77,13 @@ var serveCmd = &cobra.Command{
 			// Check if this is a status update
 			if strings.HasSuffix(path, "/status") {
 				taskID := strings.TrimSuffix(path, "/status")
+				if !validTaskID.MatchString(taskID) {
+					http.Error(w, "Invalid task ID", http.StatusBadRequest)
+					return
+				}
 				if r.Method == http.MethodPost {
+					mu.Lock()
+					defer mu.Unlock()
 					handleUpdateStatus(w, r, st, taskID)
 					return
 				}
@@ -81,6 +96,12 @@ var serveCmd = &cobra.Command{
 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 				return
 			}
+			if !validTaskID.MatchString(path) {
+				http.Error(w, "Invalid task ID", http.StatusBadRequest)
+				return
+			}
+			mu.Lock()
+			defer mu.Unlock()
 			handleGetTask(w, st, path)
 		})
 
@@ -142,7 +163,13 @@ func handleGetTask(w http.ResponseWriter, st *store.Store, taskID string) {
 	}
 
 	detail, err := st.ReadDetail(t)
-	if err == nil && detail != "" {
+	if err != nil {
+		if !errors.Is(err, store.ErrNotFound) {
+			http.Error(w, fmt.Sprintf("Failed to read detail: %v", err), http.StatusInternalServerError)
+			return
+		}
+		// ErrNotFound is expected when a task has no detail file.
+	} else if detail != "" {
 		output.Detail = detail
 	}
 

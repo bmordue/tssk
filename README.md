@@ -134,10 +134,10 @@ Flags:
 The web UI provides:
 - Interactive task list with status badges and tags
 - Filter by status, tag, or search by title
-- Sortable columns (ID, status, title, created date)
+- Sort tasks by ID, title, or created date
 - Expandable task cards with full markdown detail
 - Status updates directly from the UI
-- Dependency visualization
+- Dependency listing per task
 - Dark/light theme toggle
 
 ## Storage
