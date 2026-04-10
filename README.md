@@ -105,6 +105,29 @@ tssk deps remove T-2 T-1
 tssk deps check T-2
 ```
 
+### Visualize tasks in a web browser
+
+```bash
+tssk serve
+tssk serve --port 3000
+tssk serve --open
+```
+
+Flags:
+
+- `-p, --port` - Port to listen on (default: 8080)
+- `--host` - Host to listen on (default: localhost)
+- `-o, --open` - Open browser automatically
+
+The web UI provides:
+- Interactive task list with status badges and tags
+- Filter by status, tag, or search by title
+- Sortable columns (ID, status, title, created date)
+- Expandable task cards with full markdown detail
+- Status updates directly from the UI
+- Dependency visualization
+- Dark/light theme toggle
+
 ## Storage
 
 Tasks are stored relative to the project root:

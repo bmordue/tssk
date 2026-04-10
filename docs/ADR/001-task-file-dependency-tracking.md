@@ -119,7 +119,7 @@ Store the pairwise conflict relationships directly:
 
 ## Decision
 
-### Recommended: Option 3
+### Chosen approach: Option 3
 
 **Store file lists on each task record, derive the inverted index on demand.**
 
@@ -149,13 +149,3 @@ Implementation sketch:
 3. **Do not persist the derived data** — compute on demand. It's fast and avoids staleness. If caching is needed later, store as `.tsks/.parallel-cache.json` and invalidate on any task change.
 
 **Rationale:** Task → files is the natural editing unit. The inverted index and conflict graph are derived artifacts that should be computed, not manually maintained. This keeps the source of truth simple while enabling all desired queries.
-
-### Final Decision
-
-<!-- TODO: Update with final decision -->
-
-**Chosen approach:** _TBD_
-
-**Rationale:** _TBD_
-
-**Next steps:** _TBD_
