@@ -1,0 +1,4 @@
+{"id":"31","title":"Multi-repo task aggregation","status":"todo","created_at":"2026-04-07T14:23:03.084522362Z","doc_hash":"40f83bf85c54e69ce7bf6e4f46ed859d85b534e03a4a91baf85407bfde1b14ab"}
+{"id":"32","title":"R-1: Profile JSONL performance, consider indexed format for Phase 4","status":"todo","created_at":"2026-04-08T08:11:53.749716479Z","doc_hash":"651b838ddd9b3d06e019a270b64bb05b695f1c09753d0cde9740b3ddcd385d99"}
+{"id":"33","title":"R-2: Freeze public API at Phase 3, maintain changelog, use semver","status":"todo","created_at":"2026-04-08T08:11:53.759382099Z","doc_hash":"9ba514847067bf572241f5925357ba7f11d85126ea1fc1075eb1089ed7a3fa1b"}
+{"id":"35","title":"R-4: Strict phase gates and review points, defer non-critical features","status":"todo","created_at":"2026-04-08T08:11:53.777920318Z","doc_hash":"972b03af17448c393ec69cd932061543bdc3906707b012fa288aa7a009959fa6"}
