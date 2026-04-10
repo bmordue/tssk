@@ -12,7 +12,7 @@ High-level views of the system and its deployment model.
 
 | Diagram                                               | Description                                                       |
 | ----------------------------------------------------- | ----------------------------------------------------------------- |
-| [System Overview](architecture/system-overview.md)    | How the CLI, business logic, and file-system storage fit together |
+| [System Overview](architecture/system-overview.md)    | How the CLI, business logic, and pluggable storage backends fit together |
 | [Deployment Architecture](architecture/deployment.md) | How the binary is built and where it stores data                  |
 
 ---
@@ -23,7 +23,7 @@ Internal structure – types, packages, and their dependencies.
 
 | Diagram                                             | Description                                                  |
 | --------------------------------------------------- | ------------------------------------------------------------ |
-| [Class / Type Diagram](components/class-diagram.md) | Go types (`Task`, `Status`, `Store`) and their relationships |
+| [Class / Type Diagram](components/class-diagram.md) | Go types (`Task`, `Status`, `Store`, `Backend`, `MultiStore`, `Config`) and their relationships |
 | [Module Dependencies](components/dependencies.md)   | Package-level dependency graph including external libraries  |
 
 ---
@@ -42,7 +42,7 @@ Step-by-step flows for key operations and state transitions.
 
 ## Sequence Diagrams
 
-Interaction flows between the user, CLI layer, store, and file system.
+Interaction flows between the user, CLI layer, store, and backend.
 
 | Diagram                                            | Description                                                   |
 | -------------------------------------------------- | ------------------------------------------------------------- |
