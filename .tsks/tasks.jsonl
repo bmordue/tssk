@@ -8,7 +8,7 @@
 {"id":"8","title":"Task search/filter (tssk list --status, --title)","status":"todo","created_at":"2026-04-07T11:59:14.056903045Z","doc_hash":"28027da41b83fe5236a07f6fc814bfdfd7e812df4925231b40ac18dfda74392d"}
 {"id":"9","title":"Bulk status update (tssk status --all)","status":"todo","created_at":"2026-04-07T11:59:14.066065089Z","doc_hash":"2a2d435bd583204540c5736ef9924468dbed197ac7b514c9eb5dd667b3ac4a36"}
 {"id":"10","title":"Machine-readable JSON output (--json flag)","status":"todo","created_at":"2026-04-07T11:59:14.075393011Z","doc_hash":"c6f3f7dd551a9b92b05f796700e55c32f71b259defce32cdc1d76659c2d9619c"}
-{"id":"11","title":"Architecture/data-flow diagrams","status":"todo","created_at":"2026-04-07T11:59:14.083772126Z","doc_hash":"942a0f78e03897b96e83d2e2709ef71e7bb0e0c52d7340c1915cdf854e5b9173"}
+{"id":"11","title":"Architecture/data-flow diagrams","status":"done","created_at":"2026-04-07T11:59:14.083772126Z","doc_hash":"942a0f78e03897b96e83d2e2709ef71e7bb0e0c52d7340c1915cdf854e5b9173"}
 {"id":"12","title":"SonarCloud static analysis integration","status":"todo","dependencies":["5","6","8","10"],"created_at":"2026-04-07T11:59:14.096847424Z","doc_hash":"88a5e3e5945a043d2d26f70863fb8c04a0aa9a1f2c726c61f3ac32078ad3d4ce"}
 {"id":"13","title":"Edit/update task title and detail (tssk edit)","status":"todo","created_at":"2026-04-07T12:00:52.238201213Z","doc_hash":"e36160ff546846042938a880ce75ecfde858985e594949edc9fde067b93bb684"}
 {"id":"14","title":"Tag/label support on tasks","status":"todo","created_at":"2026-04-07T12:00:52.247897924Z","doc_hash":"0d66bc5707c7773295373e350dfa04c99da2efc85e5260f212299a2516669d81"}
