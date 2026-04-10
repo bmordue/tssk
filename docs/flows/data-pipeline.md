@@ -1,7 +1,7 @@
 # Data Persistence Pipeline
 
 ## Purpose
-This diagram shows how task data flows through the persistence layer – from the in-memory `Task` struct to the on-disk storage targets (`tasks.jsonl` and the content-addressed markdown file in `docs/`), via the pluggable Backend interface.
+This diagram shows how task data flows through the persistence layer – from the in-memory `Task` struct to backend-dependent storage targets via the pluggable Backend interface. With the local backend, the default targets are `.tsks/tasks.jsonl` and content-addressed markdown files under `.tsks/docs/`; with the S3 backend, the same metadata and detail content are stored as objects instead of on-disk files.
 
 ## Diagram
 

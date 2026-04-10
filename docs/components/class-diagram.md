@@ -15,7 +15,7 @@ classDiagram
         +[]String Tags
         +Time CreatedAt
         +String DocHash
-        +MetaJSON() []byte
+        +MetaJSON() ([]byte, error)
         +ComputeDocHash() error
         +ComputeDocHashN(length int) error
         +HasDependency(id string) bool
@@ -96,15 +96,15 @@ classDiagram
     class MultiStore {
         -Store primary
         -map[string]*Store collections
-        +NewMultiStore(primary *Store, collections map[string]*Store) *MultiStore
+        +NewMultiStoreWithCollections(primary *Store, collections []NamedStore) *MultiStore
         +LoadAll() ([]CollectedTask, error)
-        +Get(qualifiedID string) (*Task, error)
-        +CheckDeps(qualifiedID string) ([]CollectedTask, error)
+        +Get(qualifiedID string) (CollectedTask, error)
+        +CheckDeps(qualifiedID string) (blocking []CollectedTask, allDone bool, err error)
     }
 
     class Config {
         +String Name
-        +BackendType Backend
+        +Backend BackendType
         +String Root
         +String TasksFile
         +String DocsDir
@@ -141,7 +141,7 @@ classDiagram
 - `DocHash` is computed from the immutable fields (`ID`, `Title`, `CreatedAt`) using SHA-256, making it a stable content address.
 - The Store caches loaded tasks in memory after the first `LoadAll()` call.
 - Task IDs are sequential integers as strings (`"1"`, `"2"`, …) generated at creation time.
-- The backend decorator chain is: `LocalBackend/S3Backend` → `RetryBackend` → `MeteredBackend`.
+- The backend decorator chain is: `MeteredBackend` → `RetryBackend` → `LocalBackend/S3Backend`.
 - `displayHashLength` (default 9) controls the filename prefix length for detail markdown files; the full 64-char hash is stored in `DocHash`.
 
 ## Related Diagrams

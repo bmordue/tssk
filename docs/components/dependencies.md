@@ -12,7 +12,7 @@ graph LR
     end
 
     subgraph "CLI Layer"
-        CMD[cmd\n(root, add, list, show,\nstatus, deps, tags, init)]
+        CMD[cmd\n(root, add, list, show,\nstatus, deps, tags, init, ready)]
     end
 
     subgraph "Internal Packages"
@@ -50,7 +50,7 @@ graph LR
 
 ## Key Components
 - **main**: Minimal entry point – calls `cmd.Execute()`.
-- **cmd**: All Cobra command definitions (`add`, `list`, `show`, `status`, `deps`, `tags`, `init`, `ready`). Depends on `store` and `task` for business logic.
+- **cmd**: All Cobra command definitions (`add`, `list`, `show`, `status`, `deps`, `tags`, `init`). Depends on `store` and `task` for business logic.
 - **internal/store**: Persistence layer with multiple files – `store.go` (high-level ops), `backend.go` (interface), `local.go` (filesystem), `s3.go` (S3), `config.go` (configuration), `retry.go` (backoff decorator), `metrics.go` (metrics collector), `multistore.go` (cross-project aggregation).
 - **internal/task**: Pure domain logic with no external dependencies beyond the Go standard library.
 - **github.com/spf13/cobra**: CLI framework used for command routing and flag parsing.

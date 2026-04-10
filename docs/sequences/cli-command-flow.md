@@ -23,7 +23,7 @@ sequenceDiagram
     alt add command
         Cobra->>Store: s.Add(title, detail, deps, tags)
         Store->>Store: LoadAll(), generate ID, compute DocHash
-        Store->>Backend: WriteDetail(hash, detail)
+        Store->>Backend: WriteDetail(hash_prefix, detail)
         Store->>Backend: WriteTasksData(JSONL)
         Store-->>Cobra: *Task
         Cobra-->>User: "Added task N: title"
@@ -47,7 +47,7 @@ sequenceDiagram
         Cobra->>Store: s.UpdateStatus(id, newStatus)
         Store->>Backend: ReadTasksData() + WriteTasksData()
         Store-->>Cobra: *Task
-        Cobra-->>User: "Updated T-N status to <status>"
+        Cobra-->>User: "Updated task N status to <status>"
     else deps command
         Cobra->>Store: s.AddDep / s.RemoveDep / s.LoadAll
         Store->>Backend: ReadTasksData() + optionally WriteTasksData()
@@ -68,7 +68,7 @@ sequenceDiagram
 ## Key Components
 - **User**: Developer or automation agent invoking `tssk` from the terminal.
 - **Cobra CLI (`cmd/`)**: Parses flags, validates arguments, and routes to the correct `RunE` handler.
-- **openStore()**: Reads `.tssk.json` + env vars, builds the Backend chain (base → retry → metrics), returns a Store.
+- **openStore()**: Reads `.tssk.json` + env vars, builds the Backend chain (metrics → retry → base), returns a Store.
 - **Store (`internal/store`)**: High-level persistence manager; every command creates a fresh instance via `openStore()`.
 - **Backend**: Pluggable storage interface. `LocalBackend` uses filesystem; `S3Backend` uses S3-compatible object storage. Both are decorated with `RetryBackend` and `MeteredBackend`.
 

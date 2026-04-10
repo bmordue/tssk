@@ -46,7 +46,7 @@ flowchart TD
 - Task IDs are sequential integers as strings (`"1"`, `"2"`, …) based on the current count of tasks.
 - Dependencies (`--deps`) are stored as a list of task ID strings; they are not validated against existing tasks at creation time.
 - The detail filename uses a configurable hash prefix length (default 9 characters from the full 64-char SHA-256 hash).
-- Tags (`--tags`) are stored as a comma-separated list of strings on the task.
+- Tags (`--tags`) are provided as a comma-separated CLI input and stored on the task as a JSON array of strings.
 
 ## Related Diagrams
 - [Task State Machine](task-states.md)
