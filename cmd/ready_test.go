@@ -295,19 +295,24 @@ func TestReadyCommand_MissingDependency(t *testing.T) {
 	t.Setenv("TSSK_ROOT", dir)
 
 	cmd := readyCmd
-	var buf bytes.Buffer
-	cmd.SetOut(&buf)
-	cmd.SetErr(&buf)
+	var outBuf bytes.Buffer
+	var errBuf bytes.Buffer
+	cmd.SetOut(&outBuf)
+	cmd.SetErr(&errBuf)
 
 	err = cmd.RunE(cmd, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	output := buf.String()
+	output := outBuf.String()
 	// Should not contain the task (missing dep treated as blocking)
-	if bytes.Contains(buf.Bytes(), []byte("Task with missing dep")) {
+	if bytes.Contains(outBuf.Bytes(), []byte("Task with missing dep")) {
 		t.Errorf("did not expect 'Task with missing dep' in output (missing dep should block), got: %s", output)
+	}
+
+	if errBuf.Len() == 0 {
+		t.Errorf("expected warning output on stderr for missing dependency, got none")
 	}
 }
 

@@ -56,7 +56,7 @@ indicates an external blocker rather than active work in progress.`,
 					// Missing dependency - treat as blocking and warn.
 					hasBlockingDep = true
 					warnings = append(warnings, fmt.Sprintf("warning: task %s depends on non-existent task %s", t.ID, depID))
-					break
+					continue
 				}
 				if dep.Status == task.StatusTodo || dep.Status == task.StatusInProgress {
 					hasBlockingDep = true
