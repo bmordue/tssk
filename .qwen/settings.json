@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tssk *)"
+    ]
+  },
+  "$version": 3
+}

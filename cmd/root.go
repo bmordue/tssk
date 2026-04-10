@@ -34,4 +34,5 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(depsCmd)
 	rootCmd.AddCommand(tagsCmd)
+	rootCmd.AddCommand(serveCmd)
 }

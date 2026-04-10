@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tssk - Task Manager</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/marked.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="header-content">
+                <h1>📋 tssk Tasks</h1>
+                <div class="header-actions">
+                    <button id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+                    <button id="refresh-btn" title="Refresh tasks" aria-label="Refresh tasks">🔄</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="status-filter">Status:</label>
+                    <select id="status-filter">
+                        <option value="">All</option>
+                        <option value="todo">Todo</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="done">Done</option>
+                        <option value="blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="tag-filter">Tag:</label>
+                    <select id="tag-filter">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="filter-group search-group">
+                    <label for="search-input">Search:</label>
+                    <input type="text" id="search-input" placeholder="Search tasks...">
+                </div>
+                <div class="filter-group">
+                    <label for="sort-select">Sort:</label>
+                    <select id="sort-select">
+                        <option value="id-asc">ID (Ascending)</option>
+                        <option value="id-desc">ID (Descending)</option>
+                        <option value="created-asc">Created (Oldest)</option>
+                        <option value="created-desc" selected>Created (Newest)</option>
+                        <option value="title-asc">Title (A-Z)</option>
+                        <option value="title-desc">Title (Z-A)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-total">0</span>
+                    <span class="stat-label">Total</span>
+                </div>
+                <div class="stat-card stat-todo">
+                    <span class="stat-value" id="stat-todo">0</span>
+                    <span class="stat-label">Todo</span>
+                </div>
+                <div class="stat-card stat-in-progress">
+                    <span class="stat-value" id="stat-in-progress">0</span>
+                    <span class="stat-label">In Progress</span>
+                </div>
+                <div class="stat-card stat-done">
+                    <span class="stat-value" id="stat-done">0</span>
+                    <span class="stat-label">Done</span>
+                </div>
+                <div class="stat-card stat-blocked">
+                    <span class="stat-value" id="stat-blocked">0</span>
+                    <span class="stat-label">Blocked</span>
+                </div>
+            </div>
+
+            <div id="task-list" class="task-list">
+                <div class="loading">Loading tasks...</div>
+            </div>
+        </main>
+
+        <div id="task-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title"></h2>
+                    <button class="close-btn" id="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="task-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">Status:</span>
+                            <select id="modal-status"></select>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Created:</span>
+                            <span id="modal-created"></span>
+                        </div>
+                        <div class="meta-item" id="modal-tags-item" style="display: none;">
+                            <span class="meta-label">Tags:</span>
+                            <div id="modal-tags"></div>
+                        </div>
+                        <div class="meta-item" id="modal-deps-item" style="display: none;">
+                            <span class="meta-label">Dependencies:</span>
+                            <div id="modal-deps"></div>
+                        </div>
+                    </div>
+                    <div id="modal-detail" class="markdown-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
