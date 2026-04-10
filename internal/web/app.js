@@ -46,7 +46,7 @@
             updateStats();
         } catch (error) {
             console.error('Error loading tasks:', error);
-            taskListEl.innerHTML = `<div class="empty-state"><h3>Error loading tasks</h3><p>${error.message}</p></div>`;
+            taskListEl.innerHTML = `<div class="empty-state"><h3>Error loading tasks</h3><p>${escapeHtml(error.message)}</p></div>`;
         }
     }
 
@@ -103,9 +103,9 @@
         filteredTasks.sort((a, b) => {
             switch (sortValue) {
                 case 'id-asc':
-                    return parseInt(a.id.split('-')[1]) - parseInt(b.id.split('-')[1]);
+                    return (parseInt(a.id.replace(/\D/g, '')) || 0) - (parseInt(b.id.replace(/\D/g, '')) || 0);
                 case 'id-desc':
-                    return parseInt(b.id.split('-')[1]) - parseInt(a.id.split('-')[1]);
+                    return (parseInt(b.id.replace(/\D/g, '')) || 0) - (parseInt(a.id.replace(/\D/g, '')) || 0);
                 case 'created-asc':
                     return new Date(a.created_at) - new Date(b.created_at);
                 case 'created-desc':
@@ -142,10 +142,10 @@
         const statusClass = `status-${task.status}`;
         const statusLabel = task.status.replace('-', ' ');
         const tagsHtml = (task.tags && task.tags.length > 0)
-            ? `<div class="task-tags">${task.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`
+            ? `<div class="task-tags">${task.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>`
             : '';
         const depsHtml = (task.dependencies && task.dependencies.length > 0)
-            ? `<div class="task-deps">Depends on: ${task.dependencies.join(', ')}</div>`
+            ? `<div class="task-deps">Depends on: ${task.dependencies.map(d => escapeHtml(d)).join(', ')}</div>`
             : '';
 
         return `
@@ -198,7 +198,7 @@
             // Tags
             if (task.tags && task.tags.length > 0) {
                 modalTagsItem.style.display = 'flex';
-                modalTags.innerHTML = task.tags.map(t => `<span class="tag">${t}</span>`).join('');
+                modalTags.innerHTML = task.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('');
             } else {
                 modalTagsItem.style.display = 'none';
             }
@@ -206,7 +206,7 @@
             // Dependencies
             if (task.dependencies && task.dependencies.length > 0) {
                 modalDepsItem.style.display = 'flex';
-                modalDeps.innerHTML = task.dependencies.map(d => `<span class="tag">${d}</span>`).join('');
+                modalDeps.innerHTML = task.dependencies.map(d => `<span class="tag">${escapeHtml(d)}</span>`).join('');
             } else {
                 modalDepsItem.style.display = 'none';
             }
