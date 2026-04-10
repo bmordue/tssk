@@ -11,12 +11,13 @@ flowchart TD
     ARGS[Parse --title, --detail, --deps, --tags flags]
     VALIDATE{--title provided\nand non-empty?}
     ERROR([Return error:\ntitle is required])
-    LOAD[Load existing tasks\nfrom tasks.jsonl]
+    LOAD[Load existing tasks\nfrom .tsks/tasks.jsonl]
     BUILD[Build new Task struct\nID = sequential int\nStatus = todo\nCreatedAt = now UTC]
     HASH[Compute DocHash\nSHA-256 of immutable fields]
-    WRITE_DOC[Write detail markdown file\ndocs/<hash_prefix>.md]
+    WRITE_DOC[Write detail markdown file\n.tsks/docs/<hash_prefix>.md]
     APPEND[Append task to in-memory list]
-    SAVE[Atomically save tasks.jsonl\nvia temp-file rename]
+    SAVE_LOCAL[LocalBackend: atomically save\n.tsks/tasks.jsonl via temp-file rename]
+    SAVE_S3[S3Backend: write\nvia PutObject]
     CLEANUP{Save succeeded?}
     REMOVE[Remove orphaned\ndetail file]
     OUTPUT([Print: Added task N: title])
@@ -29,8 +30,10 @@ flowchart TD
     BUILD --> HASH
     HASH --> WRITE_DOC
     WRITE_DOC --> APPEND
-    APPEND --> SAVE
-    SAVE --> CLEANUP
+    APPEND --> SAVE_LOCAL
+    APPEND --> SAVE_S3
+    SAVE_LOCAL --> CLEANUP
+    SAVE_S3 --> CLEANUP
     CLEANUP -->|Failed| REMOVE
     CLEANUP -->|Succeeded| OUTPUT
     REMOVE --> ERROR
@@ -39,7 +42,8 @@ flowchart TD
 ## Key Components
 - **Flag parsing**: Cobra validates that `--title` is present and non-empty before delegating to the Store.
 - **DocHash**: SHA-256 of the JSON-encoded immutable metadata (`id`, `title`, `created_at`) – serves as a stable content address for the detail file.
-- **Atomic save**: The JSONL file is replaced atomically using a temp-file rename to prevent partial writes.
+- **Atomic save (LocalBackend)**: The JSONL file is replaced atomically using a temp-file rename to prevent partial writes. This pattern is only available with the local backend.
+- **S3 write (S3Backend)**: The JSONL content is uploaded via a single PutObject call; no atomic rename is involved.
 - **Orphan cleanup**: If the JSONL save fails after the detail file is written, the orphaned detail file is removed as a best-effort cleanup.
 
 ## Notes
