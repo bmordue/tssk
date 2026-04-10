@@ -75,6 +75,18 @@ Flags:
 
 - `-s, --status` - Filter by status (`todo`, `in-progress`, `done`, `blocked`)
 
+### List ready tasks
+
+```bash
+tssk ready
+```
+
+Lists all tasks with status `todo` that do not depend on any task with status `todo` or `in-progress`. A task is considered "ready" when it has no blocking dependencies, meaning all its dependencies (if any) are either `done` or `blocked`.
+
+Flags:
+
+- `--json` - Output tasks as JSON
+
 ### Show a task
 
 ```bash
