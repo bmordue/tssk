@@ -66,3 +66,22 @@ jobs:
         with:
           version: v2.1.6
           args: --timeout=5m
+
+  phase-gate:
+    name: Phase Gate Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Build
+        run: go build -o tssk .
+
+      - name: Check phase gate compliance
+        run: ./tssk phase check
+        continue-on-error: true

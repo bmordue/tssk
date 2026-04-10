@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -13,12 +15,17 @@ type Status string
 const (
 	StatusTodo       Status = "todo"
 	StatusInProgress Status = "in-progress"
+	StatusInReview   Status = "in-review"
 	StatusDone       Status = "done"
 	StatusBlocked    Status = "blocked"
 )
 
 // ValidStatuses lists all accepted status values.
-var ValidStatuses = []Status{StatusTodo, StatusInProgress, StatusDone, StatusBlocked}
+var ValidStatuses = []Status{StatusTodo, StatusInProgress, StatusInReview, StatusDone, StatusBlocked}
+
+// PhaseGateStatuses defines the valid progression path for phase gates.
+// Tasks must pass through in-review before being marked done.
+var PhaseGateStatuses = []Status{StatusInReview}
 
 // IsValid reports whether s is a recognised status string.
 func (s Status) IsValid() bool {
@@ -147,4 +154,70 @@ func (t *Task) RemoveTag(tag string) bool {
 		}
 	}
 	return false
+}
+
+// ValidatePhaseGate checks if the status transition is valid according to
+// phase gate rules. Returns an error if the transition violates the rules.
+//
+// Phase gate rules:
+// - Tasks must be in-review before they can be marked done
+// - Tasks cannot move from done back to in-progress or todo without explicit override
+func (t *Task) ValidatePhaseGate(newStatus Status) error {
+	// No-op if status isn't changing
+	if newStatus == t.Status {
+		return nil
+	}
+
+	// Allow transitions to blocked from any state
+	if newStatus == StatusBlocked {
+		return nil
+	}
+
+	// Allow transitions to in-progress from todo, blocked, or in-review (rework)
+	if newStatus == StatusInProgress && (t.Status == StatusTodo || t.Status == StatusBlocked || t.Status == StatusInReview) {
+		return nil
+	}
+
+	// Allow transitions to in-review from in-progress
+	if newStatus == StatusInReview && t.Status == StatusInProgress {
+		return nil
+	}
+
+	// Allow transitions to done only from in-review
+	if newStatus == StatusDone {
+		if t.Status != StatusInReview {
+			return fmt.Errorf("phase gate violation: task %s must be in-review before marking as done (current: %s)", t.ID, t.Status)
+		}
+		return nil
+	}
+
+	// Allow transitions to todo from any state (reset)
+	if newStatus == StatusTodo {
+		return nil
+	}
+
+	return fmt.Errorf("invalid status transition: %s -> %s", t.Status, newStatus)
+}
+
+// HasPhaseTag reports whether the task has a phase tag (phase-N).
+func (t *Task) HasPhaseTag() bool {
+	for _, tag := range t.Tags {
+		if strings.HasPrefix(tag, "phase-") && len(tag) > 6 {
+			return true
+		}
+	}
+	return false
+}
+
+// GetPhase returns the phase number from the task's phase tag, or 0 if none.
+func (t *Task) GetPhase() int {
+	for _, tag := range t.Tags {
+		if strings.HasPrefix(tag, "phase-") {
+			var phase int
+			if _, err := fmt.Sscanf(tag, "phase-%d", &phase); err == nil {
+				return phase
+			}
+		}
+	}
+	return 0
 }

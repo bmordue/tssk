@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/bmordue/tssk/internal/store"
@@ -119,9 +120,22 @@ func TestPrefixMatching(t *testing.T) {
 	}
 
 	// Prefix resolution also works for UpdateStatus.
-	updated, err := s.UpdateStatus("10", task.StatusDone)
+	updated, err := s.UpdateStatus("10", task.StatusInProgress)
 	if err != nil {
-		t.Fatalf("UpdateStatus by exact ID: %v", err)
+		t.Fatalf("UpdateStatus to in-progress by exact ID: %v", err)
+	}
+	if updated.ID != "10" || updated.Status != task.StatusInProgress {
+		t.Errorf("unexpected result: id=%s status=%s", updated.ID, updated.Status)
+	}
+
+	// Now move to in-review and done to test full flow
+	updated, err = s.UpdateStatus("10", task.StatusInReview)
+	if err != nil {
+		t.Fatalf("UpdateStatus to in-review: %v", err)
+	}
+	updated, err = s.UpdateStatus("10", task.StatusDone)
+	if err != nil {
+		t.Fatalf("UpdateStatus to done: %v", err)
 	}
 	if updated.ID != "10" || updated.Status != task.StatusDone {
 		t.Errorf("unexpected result: id=%s status=%s", updated.ID, updated.Status)
@@ -154,7 +168,18 @@ func TestUpdateStatus(t *testing.T) {
 	s := newTempStore(t)
 	tk, _ := s.Add("Status test", "", nil, nil)
 
-	updated, err := s.UpdateStatus(tk.ID, task.StatusDone)
+	// Must follow phase gate rules: todo -> in-progress -> in-review -> done
+	_, err := s.UpdateStatus(tk.ID, task.StatusInProgress)
+	if err != nil {
+		t.Fatalf("UpdateStatus to in-progress: %v", err)
+	}
+
+	updated, err := s.UpdateStatus(tk.ID, task.StatusInReview)
+	if err != nil {
+		t.Fatalf("UpdateStatus to in-review: %v", err)
+	}
+
+	updated, err = s.UpdateStatus(tk.ID, task.StatusDone)
 	if err != nil {
 		t.Fatalf("UpdateStatus: %v", err)
 	}
@@ -169,6 +194,29 @@ func TestUpdateStatus(t *testing.T) {
 	}
 	if reloaded.Status != task.StatusDone {
 		t.Errorf("status not persisted: %q", reloaded.Status)
+	}
+}
+
+func TestUpdateStatusPhaseGateViolation(t *testing.T) {
+	s := newTempStore(t)
+	tk, _ := s.Add("Phase gate test", "", nil, nil)
+
+	// Try to skip in-review (should fail)
+	_, err := s.UpdateStatus(tk.ID, task.StatusDone)
+	if err == nil {
+		t.Fatal("expected error when skipping in-review")
+	}
+	if !strings.Contains(err.Error(), "phase gate violation") {
+		t.Fatalf("expected phase gate violation error, got: %v", err)
+	}
+
+	// Verify task is still in todo status
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get after failed UpdateStatus: %v", err)
+	}
+	if reloaded.Status != task.StatusTodo {
+		t.Errorf("expected task to remain in todo after failed transition, got %q", reloaded.Status)
 	}
 }
 

@@ -176,6 +176,12 @@ func (s *Store) UpdateStatus(id string, status task.Status) (*task.Task, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate phase gate rules
+	if err := found.ValidatePhaseGate(status); err != nil {
+		return nil, err
+	}
+
 	found.Status = status
 	if err := s.saveAll(tasks); err != nil {
 		return nil, err

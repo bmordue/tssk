@@ -15,14 +15,20 @@ var statusCmd = &cobra.Command{
 	Short: "Update the status of a task",
 	Long: `Update the status of a task.
 
-Valid status values: todo, in-progress, done, blocked`,
+Valid status values: todo, in-progress, in-review, done, blocked
+
+Phase gate rules:
+  - Tasks must be in-review before they can be marked done
+  - Tasks in-review can be sent back to in-progress for rework
+  - Tasks can be blocked from any state
+  - Tasks can be reset to todo from any state`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
 		newStatus := task.Status(args[1])
 
 		if !newStatus.IsValid() {
-			return fmt.Errorf("unknown status %q; valid values: todo, in-progress, done, blocked", args[1])
+			return fmt.Errorf("unknown status %q; valid values: todo, in-progress, in-review, done, blocked", args[1])
 		}
 
 		s, err := openStore()

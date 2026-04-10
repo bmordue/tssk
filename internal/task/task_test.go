@@ -10,6 +10,7 @@ func TestStatusIsValid(t *testing.T) {
 	valid := []task.Status{
 		task.StatusTodo,
 		task.StatusInProgress,
+		task.StatusInReview,
 		task.StatusDone,
 		task.StatusBlocked,
 	}
@@ -118,5 +119,106 @@ func TestAddRemoveDependency(t *testing.T) {
 	removed = tk.RemoveDependency("T-99")
 	if removed {
 		t.Error("expected RemoveDependency to return false for missing dep")
+	}
+}
+
+func TestValidatePhaseGate(t *testing.T) {
+	tests := []struct {
+		name        string
+		current     task.Status
+		next        task.Status
+		shouldError bool
+	}{
+		// Same status (no-op)
+		{"todo -> todo", task.StatusTodo, task.StatusTodo, false},
+		{"in-progress -> in-progress", task.StatusInProgress, task.StatusInProgress, false},
+		{"in-review -> in-review", task.StatusInReview, task.StatusInReview, false},
+		{"done -> done", task.StatusDone, task.StatusDone, false},
+
+		// Valid transitions
+		{"todo -> in-progress", task.StatusTodo, task.StatusInProgress, false},
+		{"in-progress -> in-review", task.StatusInProgress, task.StatusInReview, false},
+		{"in-review -> done", task.StatusInReview, task.StatusDone, false},
+		{"in-review -> in-progress (rework)", task.StatusInReview, task.StatusInProgress, false},
+		{"todo -> blocked", task.StatusTodo, task.StatusBlocked, false},
+		{"in-progress -> blocked", task.StatusInProgress, task.StatusBlocked, false},
+		{"in-review -> blocked", task.StatusInReview, task.StatusBlocked, false},
+		{"done -> blocked", task.StatusDone, task.StatusBlocked, false},
+		{"blocked -> in-progress", task.StatusBlocked, task.StatusInProgress, false},
+		{"blocked -> todo (reset)", task.StatusBlocked, task.StatusTodo, false},
+		{"in-progress -> todo (reset)", task.StatusInProgress, task.StatusTodo, false},
+		{"in-review -> todo (reset)", task.StatusInReview, task.StatusTodo, false},
+		{"done -> todo (reset)", task.StatusDone, task.StatusTodo, false},
+
+		// Invalid transitions
+		{"todo -> done (skip review)", task.StatusTodo, task.StatusDone, true},
+		{"in-progress -> done (skip review)", task.StatusInProgress, task.StatusDone, true},
+		{"blocked -> done (skip review)", task.StatusBlocked, task.StatusDone, true},
+		{"todo -> in-review (skip in-progress)", task.StatusTodo, task.StatusInReview, true},
+		{"done -> in-progress", task.StatusDone, task.StatusInProgress, true},
+		{"done -> in-review", task.StatusDone, task.StatusInReview, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tk := &task.Task{ID: "1", Status: tt.current}
+			err := tk.ValidatePhaseGate(tt.next)
+
+			if tt.shouldError && err == nil {
+				t.Errorf("expected error for transition %s -> %s", tt.current, tt.next)
+			}
+			if !tt.shouldError && err != nil {
+				t.Errorf("unexpected error for transition %s -> %s: %v", tt.current, tt.next, err)
+			}
+		})
+	}
+}
+
+func TestHasPhaseTag(t *testing.T) {
+	tests := []struct {
+		name     string
+		tags     []string
+		hasPhase bool
+	}{
+		{"no tags", nil, false},
+		{"empty tags", []string{}, false},
+		{"phase tag present", []string{"phase-1"}, true},
+		{"phase tag with others", []string{"bug", "phase-2", "urgent"}, true},
+		{"no phase tag", []string{"bug", "feature"}, false},
+		{"similar but not phase", []string{"phased", "phase"}, false},
+		{"empty phase tag", []string{"phase-"}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tk := &task.Task{ID: "1", Tags: tt.tags}
+			if got := tk.HasPhaseTag(); got != tt.hasPhase {
+				t.Errorf("HasPhaseTag() = %v, want %v", got, tt.hasPhase)
+			}
+		})
+	}
+}
+
+func TestGetPhase(t *testing.T) {
+	tests := []struct {
+		name      string
+		tags      []string
+		wantPhase int
+	}{
+		{"no tags", nil, 0},
+		{"phase-1", []string{"phase-1"}, 1},
+		{"phase-3", []string{"phase-3"}, 3},
+		{"phase-10", []string{"phase-10"}, 10},
+		{"multiple tags", []string{"bug", "phase-2", "urgent"}, 2},
+		{"no phase tag", []string{"bug", "feature"}, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tk := &task.Task{ID: "1", Tags: tt.tags}
+			if got := tk.GetPhase(); got != tt.wantPhase {
+				t.Errorf("GetPhase() = %v, want %v", got, tt.wantPhase)
+			}
+		})
 	}
 }
