@@ -31,7 +31,7 @@ func TestAddAndGet(t *testing.T) {
 	s := newTempStore(t)
 
 	tk, err := s.Add("My first task", "Some detail text", nil, nil)
-	if addErr != nil {
+	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
