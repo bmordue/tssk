@@ -31,7 +31,7 @@ func TestAddAndGet(t *testing.T) {
 	s := newTempStore(t)
 
 	tk, err := s.Add("My first task", "Some detail text", nil, nil)
-	if err != nil {
+	if addErr != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
@@ -254,19 +254,19 @@ func TestReadDetail(t *testing.T) {
 
 func TestAddTagsDeduplication(t *testing.T) {
 	s := newTempStore(t)
-	tk, err := s.Add("Tag test task", "", nil, []string{"alpha"})
-	if err != nil {
-		t.Fatalf("Add: %v", err)
+	tk, addErr := s.Add("Tag test task", "", nil, []string{"alpha"})
+	if addErr != nil {
+		t.Fatalf("Add: %v", addErr)
 	}
 
 	// Adding a duplicate tag should not produce a second entry.
-	if err := s.AddTags(tk.ID, []string{"alpha", "beta"}); err != nil {
-		t.Fatalf("AddTags: %v", err)
+	if tagsErr := s.AddTags(tk.ID, []string{"alpha", "beta"}); tagsErr != nil {
+		t.Fatalf("AddTags: %v", tagsErr)
 	}
 
-	reloaded, err := s.Get(tk.ID)
-	if err != nil {
-		t.Fatalf("Get after AddTags: %v", err)
+	reloaded, getErr := s.Get(tk.ID)
+	if getErr != nil {
+		t.Fatalf("Get after AddTags: %v", getErr)
 	}
 	if len(reloaded.Tags) != 2 {
 		t.Errorf("expected 2 tags after dedup, got %d: %v", len(reloaded.Tags), reloaded.Tags)
@@ -278,14 +278,14 @@ func TestAddTagsDeduplication(t *testing.T) {
 
 func TestRemoveTagsNonExistent(t *testing.T) {
 	s := newTempStore(t)
-	tk, err := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"})
-	if err != nil {
-		t.Fatalf("Add: %v", err)
+	tk, addErr := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"})
+	if addErr != nil {
+		t.Fatalf("Add: %v", addErr)
 	}
 
 	// Removing a tag that does not exist should succeed without error.
-	if err := s.RemoveTags(tk.ID, []string{"beta", "gamma"}); err != nil {
-		t.Fatalf("RemoveTags: %v", err)
+	if removeErr := s.RemoveTags(tk.ID, []string{"beta", "gamma"}); removeErr != nil {
+		t.Fatalf("RemoveTags: %v", removeErr)
 	}
 
 	reloaded, err := s.Get(tk.ID)
@@ -299,13 +299,13 @@ func TestRemoveTagsNonExistent(t *testing.T) {
 
 func TestSetTagsPersistence(t *testing.T) {
 	s := newTempStore(t)
-	tk, err := s.Add("SetTags persistence test", "", nil, []string{"old"})
-	if err != nil {
-		t.Fatalf("Add: %v", err)
+	tk, addErr := s.Add("SetTags persistence test", "", nil, []string{"old"})
+	if addErr != nil {
+		t.Fatalf("Add: %v", addErr)
 	}
 
-	if err := s.SetTags(tk.ID, []string{"new1", "new2"}); err != nil {
-		t.Fatalf("SetTags: %v", err)
+	if setErr := s.SetTags(tk.ID, []string{"new1", "new2"}); setErr != nil {
+		t.Fatalf("SetTags: %v", setErr)
 	}
 
 	// Reload from disk to confirm persistence.
