@@ -39,7 +39,7 @@
 {"id":"44","title":"Add tssk Task Management","status":"done","created_at":"2026-04-09T14:24:24.186223473Z","doc_hash":"f9bd092fae9ab448c4dd9c96c29bec66d74c1290a2867f1810a0e2b0538d45b3"}
 {"id":"45","title":"Move default config file location","status":"todo","created_at":"2026-04-09T14:24:31.170932152Z","doc_hash":"f5d4cc4297649eb790f45490cbf4b417af6d435ee9c748aa1cfa93c26e456f99"}
 {"id":"46","title":"Add 'removed' status and command","status":"todo","created_at":"2026-04-09T14:24:42.476278878Z","doc_hash":"79d190428f3ea9194ad49cf469d22b44709385604821d3f7acdc2a5b0ffd7e6d"}
-{"id":"47","title":"Add 'ready' command to show ready tasks","status":"todo","created_at":"2026-04-09T14:25:00.522555503Z","doc_hash":"2204e21beba0fca434468fd6fa6a47834cecde92c1b4dff03bf1093f51487f79"}
+{"id":"47","title":"Add 'ready' command to show ready tasks","status":"done","created_at":"2026-04-09T14:25:00.522555503Z","doc_hash":"2204e21beba0fca434468fd6fa6a47834cecde92c1b4dff03bf1093f51487f79"}
 {"id":"48","title":"Add command to tidy up docs directory","status":"todo","created_at":"2026-04-09T14:25:09.509594234Z","doc_hash":"af29758803d882af78a695547aaa46151e800e7f466a6b4ff67f7001629e2218"}
 {"id":"49","title":"Add tags to the JSONL file","status":"todo","created_at":"2026-04-09T14:25:25.948252129Z","doc_hash":"7684526c6c0f54849e61ddb74f3e9014d77c680da51d12c9680040435bdf6ed3"}
 {"id":"50","title":"Add optional duration estimate","status":"todo","created_at":"2026-04-09T14:25:40.895703813Z","doc_hash":"e8c70b2ea49ccabbfb7438c364df6a36fc1ee81aa1e81930517877181dbda1d4"}
