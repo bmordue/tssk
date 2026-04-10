@@ -7,8 +7,8 @@
 {"id":"7","title":"Add Nix development environment flake","status":"todo","created_at":"2026-04-07T11:59:14.046729483Z","doc_hash":"bf0a45afd851feac4476ff67e76eb45e9c6e7bea5e0b944ae42807a3ab1631db"}
 {"id":"8","title":"Task search/filter (tssk list --status, --title)","status":"todo","created_at":"2026-04-07T11:59:14.056903045Z","doc_hash":"28027da41b83fe5236a07f6fc814bfdfd7e812df4925231b40ac18dfda74392d"}
 {"id":"9","title":"Bulk status update (tssk status --all)","status":"todo","created_at":"2026-04-07T11:59:14.066065089Z","doc_hash":"2a2d435bd583204540c5736ef9924468dbed197ac7b514c9eb5dd667b3ac4a36"}
-{"id":"10","title":"Machine-readable JSON output (--json flag)","status":"todo","created_at":"2026-04-07T11:59:14.075393011Z","doc_hash":"c6f3f7dd551a9b92b05f796700e55c32f71b259defce32cdc1d76659c2d9619c"}
-{"id":"11","title":"Architecture/data-flow diagrams","status":"todo","created_at":"2026-04-07T11:59:14.083772126Z","doc_hash":"942a0f78e03897b96e83d2e2709ef71e7bb0e0c52d7340c1915cdf854e5b9173"}
+{"id":"10","title":"Machine-readable JSON output (--json flag)","status":"done","created_at":"2026-04-07T11:59:14.075393011Z","doc_hash":"c6f3f7dd551a9b92b05f796700e55c32f71b259defce32cdc1d76659c2d9619c"}
+{"id":"11","title":"Architecture/data-flow diagrams","status":"done","created_at":"2026-04-07T11:59:14.083772126Z","doc_hash":"942a0f78e03897b96e83d2e2709ef71e7bb0e0c52d7340c1915cdf854e5b9173"}
 {"id":"12","title":"SonarCloud static analysis integration","status":"todo","dependencies":["5","6","8","10"],"created_at":"2026-04-07T11:59:14.096847424Z","doc_hash":"88a5e3e5945a043d2d26f70863fb8c04a0aa9a1f2c726c61f3ac32078ad3d4ce"}
 {"id":"13","title":"Edit/update task title and detail (tssk edit)","status":"todo","created_at":"2026-04-07T12:00:52.238201213Z","doc_hash":"e36160ff546846042938a880ce75ecfde858985e594949edc9fde067b93bb684"}
 {"id":"14","title":"Tag/label support on tasks","status":"todo","created_at":"2026-04-07T12:00:52.247897924Z","doc_hash":"0d66bc5707c7773295373e350dfa04c99da2efc85e5260f212299a2516669d81"}
@@ -36,12 +36,12 @@
 {"id":"36","title":"R-5: Prioritize README (#4) and documentation site in Phase 1/3","status":"todo","created_at":"2026-04-08T08:11:53.789222108Z","doc_hash":"dc23b2b90b62035c9c159fe69e3cd7e9efd8a09552d56455e5049c61507803ec"}
 {"id":"37","title":"R-6: Add advisory file locking in Phase 2","status":"todo","created_at":"2026-04-08T08:11:53.800848166Z","doc_hash":"2463e373c50e3adcdbc50af54e6b907d51838e13730813fc809bf0aec973dd1d"}
 {"id":"38","title":"R-7: Address CI/CD pipeline in Phase 0 (#8), add caching and parallelism","status":"todo","created_at":"2026-04-08T08:11:53.811154205Z","doc_hash":"79758415ed538dd4c394c768cc0f2f9df2b3fd79973a1e3ed55f9200da18dc20"}
-{"id":"39","title":"This task management setup (tssk meta-task)","status":"todo","created_at":"2026-04-08T08:12:58.504226597Z","doc_hash":"e5d2442f1a85086314c362509b7d57fcb852e3bfce182aad013db4dd29367845"}
+{"id":"39","title":"This task management setup (tssk meta-task)","status":"done","created_at":"2026-04-08T08:12:58.504226597Z","doc_hash":"e5d2442f1a85086314c362509b7d57fcb852e3bfce182aad013db4dd29367845"}
 {"id":"40","title":"Add --json flag to tssk list command","status":"todo","dependencies":["10"],"created_at":"2026-04-08T15:52:37.706781966Z","doc_hash":"2ecd847daad16b3bed1d0f78fbe15bdb3379fcbdd7019dcb523e83acb8fd8e47"}
 {"id":"41","title":"Add --json flag to tssk show command","status":"todo","dependencies":["10"],"created_at":"2026-04-08T15:54:42.410792895Z","doc_hash":"8d9f1bf03f4932514bbf2d0ee54bbed4fd0c1b18d3ba1b34e0477708a3abeabc"}
-{"id":"42","title":"Reduce duplication in env var parsing code","status":"todo","created_at":"2026-04-09T14:23:35.601104925Z","doc_hash":"7a4e0cadaee16ceaefd3b11f581212131958a74be2fbbcc15fbbc5b027c66c5e"}
+{"id":"42","title":"Reduce duplication in env var parsing code","status":"done","created_at":"2026-04-09T14:23:35.601104925Z","doc_hash":"7a4e0cadaee16ceaefd3b11f581212131958a74be2fbbcc15fbbc5b027c66c5e"}
 {"id":"43","title":"Remove Code Duplication","status":"todo","created_at":"2026-04-09T14:24:16.176880823Z","doc_hash":"e7e6245498cb75e0cb79ad3edfd7786dbfbd6c3c064944deb7e5e5c9741ef408"}
-{"id":"44","title":"Add tssk Task Management","status":"todo","created_at":"2026-04-09T14:24:24.186223473Z","doc_hash":"f9bd092fae9ab448c4dd9c96c29bec66d74c1290a2867f1810a0e2b0538d45b3"}
+{"id":"44","title":"Add tssk Task Management","status":"done","created_at":"2026-04-09T14:24:24.186223473Z","doc_hash":"f9bd092fae9ab448c4dd9c96c29bec66d74c1290a2867f1810a0e2b0538d45b3"}
 {"id":"45","title":"Move default config file location","status":"todo","created_at":"2026-04-09T14:24:31.170932152Z","doc_hash":"f5d4cc4297649eb790f45490cbf4b417af6d435ee9c748aa1cfa93c26e456f99"}
 {"id":"46","title":"Add 'removed' status and command","status":"todo","created_at":"2026-04-09T14:24:42.476278878Z","doc_hash":"79d190428f3ea9194ad49cf469d22b44709385604821d3f7acdc2a5b0ffd7e6d"}
 {"id":"47","title":"Add 'ready' command to show ready tasks","status":"todo","created_at":"2026-04-09T14:25:00.522555503Z","doc_hash":"2204e21beba0fca434468fd6fa6a47834cecde92c1b4dff03bf1093f51487f79"}

@@ -9,63 +9,73 @@ This diagram illustrates the sequence of interactions between the user, the Cobr
 sequenceDiagram
     participant User
     participant Cobra as Cobra CLI (cmd/)
-    participant Helpers as root_helpers
+    participant Config as openStore()
     participant Store as internal/store
-    participant FS as File System
+    participant Backend as Backend (local/S3)
 
     User->>Cobra: tssk <command> [flags] [args]
     Cobra->>Cobra: Parse flags & validate args
-    Cobra->>Helpers: projectRoot()
-    Helpers-->>Cobra: root directory path
-    Cobra->>Store: store.New(root)
-    Store-->>Cobra: Store instance
+    Cobra->>Config: openStore()
+    Config->>Config: Read .tssk.json + env vars
+    Config->>Config: Build Backend chain
+    Config-->>Cobra: Store instance
 
     alt add command
-        Cobra->>Store: s.Add(title, detail, deps)
-        Store->>FS: os.MkdirAll(docs/)
-        Store->>FS: os.WriteFile(docs/DocHash.md)
-        Store->>FS: Atomic write tasks.jsonl
+        Cobra->>Store: s.Add(title, detail, deps, tags)
+        Store->>Store: LoadAll(), generate ID, compute DocHash
+        Store->>Backend: WriteDetail(hash_prefix, detail)
+        Store->>Backend: WriteTasksData(JSONL)
         Store-->>Cobra: *Task
-        Cobra-->>User: "Added task T-N: title"
+        Cobra-->>User: "Added task N: title"
     else list command
         Cobra->>Store: st.LoadAll()
-        Store->>FS: Read tasks.jsonl
-        FS-->>Store: raw JSONL bytes
+        Store->>Backend: ReadTasksData()
+        Backend-->>Store: raw JSONL bytes
         Store-->>Cobra: []*Task
         Cobra-->>User: Tabular task list
     else show command
         Cobra->>Store: s.Get(id)
-        Store->>FS: Read tasks.jsonl
-        FS-->>Store: raw JSONL bytes
+        Store->>Backend: ReadTasksData()
+        Backend-->>Store: raw JSONL bytes
         Store-->>Cobra: *Task
         Cobra->>Store: s.ReadDetail(t)
-        Store->>FS: Read docs/DocHash.md
-        FS-->>Store: markdown text
+        Store->>Backend: ReadDetail(hash_prefix)
+        Backend-->>Store: markdown text
         Store-->>Cobra: detail string
         Cobra-->>User: Task metadata + detail
     else status command
         Cobra->>Store: s.UpdateStatus(id, newStatus)
-        Store->>FS: Read + rewrite tasks.jsonl
+        Store->>Backend: ReadTasksData() + WriteTasksData()
         Store-->>Cobra: *Task
-        Cobra-->>User: "Updated T-N status to <status>"
+        Cobra-->>User: "Updated task N status to <status>"
     else deps command
         Cobra->>Store: s.AddDep / s.RemoveDep / s.LoadAll
-        Store->>FS: Read + optionally rewrite tasks.jsonl
+        Store->>Backend: ReadTasksData() + optionally WriteTasksData()
         Store-->>Cobra: result
         Cobra-->>User: Dependency summary
+    else tags command
+        Cobra->>Store: s.AddTags / s.RemoveTags / s.SetTags
+        Store->>Backend: ReadTasksData() + WriteTasksData()
+        Store-->>Cobra: *Task
+        Cobra-->>User: Tags list
+    else init command
+        Cobra->>Cobra: Check if .tssk.json exists
+        Cobra->>Cobra: Write default config
+        Cobra-->>User: "Initialized tssk"
     end
 ```
 
 ## Key Components
 - **User**: Developer or automation agent invoking `tssk` from the terminal.
 - **Cobra CLI (`cmd/`)**: Parses flags, validates arguments, and routes to the correct `RunE` handler.
-- **root_helpers**: Provides `projectRoot()`, which reads `TSSK_ROOT` or falls back to the current working directory.
-- **Store (`internal/store`)**: Stateless persistence layer; every command creates a fresh `Store` instance.
-- **File System**: The only storage backend – `tasks.jsonl` and `docs/*.md`.
+- **openStore()**: Reads `.tssk.json` + env vars, builds the Backend chain (metrics → retry → base), returns a Store.
+- **Store (`internal/store`)**: High-level persistence manager; every command creates a fresh instance via `openStore()`.
+- **Backend**: Pluggable storage interface. `LocalBackend` uses filesystem; `S3Backend` uses S3-compatible object storage. Both are decorated with `RetryBackend` and `MeteredBackend`.
 
 ## Notes
-- Every command creates a new `Store` instance (no shared state between invocations).
+- Every command creates a new Store instance (no shared state between invocations).
 - Errors at any step are printed to stderr and result in a non-zero exit code via Cobra's `RunE` mechanism.
+- The `MultiStore` variant enables cross-project task management with qualified IDs (`{collection}:{id}`).
 
 ## Related Diagrams
 - [System Overview](../architecture/system-overview.md)

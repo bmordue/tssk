@@ -1,26 +1,26 @@
 # Task Creation Flow
 
 ## Purpose
-This diagram illustrates the end-to-end flow when a user runs `tssk add --title "..." --detail "..." --deps T-1,T-2` to create a new task.
+This diagram illustrates the end-to-end flow when a user runs `tssk add --title "..." --detail "..." --deps 1,2 --tags bug,urgent` to create a new task.
 
 ## Diagram
 
 ```mermaid
 flowchart TD
     START([User runs: tssk add])
-    ARGS[Parse --title, --detail, --deps flags]
+    ARGS[Parse --title, --detail, --deps, --tags flags]
     VALIDATE{--title provided\nand non-empty?}
     ERROR([Return error:\ntitle is required])
-    LOAD[Load existing tasks\nfrom tasks.jsonl]
-    BUILD[Build new Task struct\nID = T-N, Status = todo\nCreatedAt = now UTC]
-    HASH[Compute DocHash\nSHA-256 of id+title+created_at]
-    ENSURE[Ensure docs/ directory exists]
-    WRITE_DOC[Write detail markdown file\ndocs/DocHash.md]
+    LOAD[Load existing tasks\nfrom .tsks/tasks.jsonl]
+    BUILD[Build new Task struct\nID = sequential int\nStatus = todo\nCreatedAt = now UTC]
+    HASH[Compute DocHash\nSHA-256 of immutable fields]
+    WRITE_DOC[Write detail markdown file\n.tsks/docs/<hash_prefix>.md]
     APPEND[Append task to in-memory list]
-    SAVE[Atomically save tasks.jsonl\nvia temp-file rename]
+    SAVE_LOCAL[LocalBackend: atomically save\n.tsks/tasks.jsonl via temp-file rename]
+    SAVE_S3[S3Backend: write\nvia PutObject]
     CLEANUP{Save succeeded?}
     REMOVE[Remove orphaned\ndetail file]
-    OUTPUT([Print: Added task T-N: title])
+    OUTPUT([Print: Added task N: title])
 
     START --> ARGS
     ARGS --> VALIDATE
@@ -28,11 +28,12 @@ flowchart TD
     VALIDATE -->|Yes| LOAD
     LOAD --> BUILD
     BUILD --> HASH
-    HASH --> ENSURE
-    ENSURE --> WRITE_DOC
+    HASH --> WRITE_DOC
     WRITE_DOC --> APPEND
-    APPEND --> SAVE
-    SAVE --> CLEANUP
+    APPEND --> SAVE_LOCAL
+    APPEND --> SAVE_S3
+    SAVE_LOCAL --> CLEANUP
+    SAVE_S3 --> CLEANUP
     CLEANUP -->|Failed| REMOVE
     CLEANUP -->|Succeeded| OUTPUT
     REMOVE --> ERROR
@@ -41,12 +42,15 @@ flowchart TD
 ## Key Components
 - **Flag parsing**: Cobra validates that `--title` is present and non-empty before delegating to the Store.
 - **DocHash**: SHA-256 of the JSON-encoded immutable metadata (`id`, `title`, `created_at`) – serves as a stable content address for the detail file.
-- **Atomic save**: The JSONL file is replaced atomically using a temp-file rename to prevent partial writes.
+- **Atomic save (LocalBackend)**: The JSONL file is replaced atomically using a temp-file rename to prevent partial writes. This pattern is only available with the local backend.
+- **S3 write (S3Backend)**: The JSONL content is uploaded via a single PutObject call; no atomic rename is involved.
 - **Orphan cleanup**: If the JSONL save fails after the detail file is written, the orphaned detail file is removed as a best-effort cleanup.
 
 ## Notes
-- Task IDs are sequential (`T-1`, `T-2`, …) based on the current count of tasks.
+- Task IDs are sequential integers as strings (`"1"`, `"2"`, …) based on the current count of tasks.
 - Dependencies (`--deps`) are stored as a list of task ID strings; they are not validated against existing tasks at creation time.
+- The detail filename uses a configurable hash prefix length (default 9 characters from the full 64-char SHA-256 hash).
+- Tags (`--tags`) are provided as a comma-separated CLI input and stored on the task as a JSON array of strings.
 
 ## Related Diagrams
 - [Task State Machine](task-states.md)
