@@ -62,4 +62,4 @@
 {"id":"90","title":"Add unit tests for inverted index and conflict detection","status":"todo","dependencies":["84","85","86"],"created_at":"2026-04-10T14:31:28.385633103Z","doc_hash":"aff707eed1f54e2a6e0f4172daf7d6d627607e0a168d9f6a0625cf341570e8d6"}
 {"id":"91","title":"Add integration tests for CLI subcommands","status":"todo","dependencies":["87","88","89","18"],"created_at":"2026-04-10T14:31:40.655542132Z","doc_hash":"bede16f2d848cce2902ed8992e5f3ad788bbb7e30a53b05c4cde58031a7742da"}
 {"id":"92","title":"Update documentation with task-file dependency tracking","status":"todo","dependencies":["87","88","89"],"created_at":"2026-04-10T14:32:49.964847398Z","doc_hash":"49e16c8cbb3d90d725ff54e614a144b56a9cc1ce5077e14b68dbb21d080d402a"}
-{"id":"65","title":"Test tag task","status":"todo","created_at":"2026-04-11T09:12:00.668507956Z","doc_hash":"92531e8b07e6d9a3e2ecc1ca481b12ba4905045943cc05ff82ca022fd3a98733"}
+{"id":"93","title":"Test tag task","status":"todo","created_at":"2026-04-11T09:12:00.668507956Z","doc_hash":"92531e8b07e6d9a3e2ecc1ca481b12ba4905045943cc05ff82ca022fd3a98733"}

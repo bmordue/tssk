@@ -149,6 +149,10 @@ func (s *Store) Get(id string) (*task.Task, error) {
 // task, and priority as the urgency level. It writes the detail markdown via
 // the backend, and appends the task metadata.
 func (s *Store) Add(title, detail string, deps []string, tags []string, priority task.Priority) (*task.Task, error) {
+	if !priority.IsValid() {
+		return nil, fmt.Errorf("unknown priority %q; valid values: low, medium, high, critical", priority)
+	}
+
 	tasks, err := s.LoadAll()
 	if err != nil {
 		return nil, err
