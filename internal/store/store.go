@@ -99,13 +99,20 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 
 // saveAll serialises the task slice as JSONL and persists it via the backend.
 func (s *Store) saveAll(tasks []*task.Task) error {
+	// Pre-allocate buffer with an estimated 256 bytes per task to reduce re-allocations.
 	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	buf.Grow(len(tasks) * 256)
+
 	for _, t := range tasks {
-		if err := enc.Encode(t); err != nil {
+		// json.Marshal is measurably faster than json.Encoder.Encode for this use case.
+		data, err := json.Marshal(t)
+		if err != nil {
 			return fmt.Errorf("serialising task %s: %w", t.ID, err)
 		}
+		buf.Write(data)
+		buf.WriteByte('\n')
 	}
+
 	if err := s.backend.WriteTasksData(buf.Bytes()); err != nil {
 		// Invalidate the cache on failure because 'tasks' (which likely
 		// contains in-memory mutations) was not successfully persisted.
@@ -114,7 +121,13 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 		return fmt.Errorf("saving tasks: %w", err)
 	}
 	s.cache = tasks
-	s.idMap = make(map[string]*task.Task, len(tasks))
+
+	// Reuse existing idMap capacity if possible.
+	if s.idMap == nil {
+		s.idMap = make(map[string]*task.Task, len(tasks))
+	} else {
+		clear(s.idMap)
+	}
 	for _, t := range tasks {
 		s.idMap[t.ID] = t
 	}
