@@ -24,7 +24,7 @@
 {"id":"29","title":"Web/TUI frontend (bubbletea)","status":"todo","created_at":"2026-04-07T14:23:03.06693921Z","doc_hash":"051108cfc20b68e5f3edf99879e0453ea0244c9f2fddf68fcb137cea80aaf464"}
 {"id":"34","title":"R-3: Automated dependency audits in CI, regular govulncheck runs","status":"todo","created_at":"2026-04-08T08:11:53.768304027Z","doc_hash":"4a09c8a2514f48238a65159a4ba7df6f95d605a096d28a9bf380b4d7bd9ecfc2"}
 {"id":"37","title":"R-6: Add advisory file locking in Phase 2","status":"todo","created_at":"2026-04-08T08:11:53.800848166Z","doc_hash":"2463e373c50e3adcdbc50af54e6b907d51838e13730813fc809bf0aec973dd1d"}
-{"id":"40","title":"Add --json flag to tssk list command","status":"todo","dependencies":["10"],"created_at":"2026-04-08T15:52:37.706781966Z","doc_hash":"2ecd847daad16b3bed1d0f78fbe15bdb3379fcbdd7019dcb523e83acb8fd8e47"}
+{"id":"40","title":"Add --json flag to tssk list command","status":"done","dependencies":["10"],"created_at":"2026-04-08T15:52:37.706781966Z","doc_hash":"2ecd847daad16b3bed1d0f78fbe15bdb3379fcbdd7019dcb523e83acb8fd8e47"}
 {"id":"42","title":"Reduce duplication in env var parsing code","status":"done","created_at":"2026-04-09T14:23:35.601104925Z","doc_hash":"7a4e0cadaee16ceaefd3b11f581212131958a74be2fbbcc15fbbc5b027c66c5e"}
 {"id":"43","title":"Remove Code Duplication","status":"todo","created_at":"2026-04-09T14:24:16.176880823Z","doc_hash":"e7e6245498cb75e0cb79ad3edfd7786dbfbd6c3c064944deb7e5e5c9741ef408"}
 {"id":"44","title":"Add tssk Task Management","status":"done","created_at":"2026-04-09T14:24:24.186223473Z","doc_hash":"f9bd092fae9ab448c4dd9c96c29bec66d74c1290a2867f1810a0e2b0538d45b3"}
@@ -52,7 +52,7 @@
 {"id":"67","title":"Implement database connection and initialization layer","status":"todo","dependencies":["66"],"created_at":"2026-04-10T13:08:45.044527436Z","doc_hash":"43b070c52a80fd9d5ed330ae3a81c5d06d4dd389ed610da19cbcc128b47d3b28"}
 {"id":"68","title":"Implement database schema migration logic","status":"todo","dependencies":["67"],"created_at":"2026-04-10T13:09:21.468369476Z","doc_hash":"fc8b93cce5ce261e18dab5d174bec67268e36d5f0a5995c7284c3078a3e210e1"}
 {"id":"82","title":"Extend task model with file tracking fields","status":"todo","created_at":"2026-04-10T14:22:24.163244898Z","doc_hash":"43c3ebf4af88b2163a117e9d26e075d9a63150097716abc34bea9953f222e8ab"}
-{"id":"83","title":"Extend task model with file tracking fields","status":"todo","created_at":"2026-04-10T14:29:06.982679678Z","doc_hash":"90df3ade11b240dd0929b0eea719bb2d81eaf1024801964352172b87558eb8ad"}
+{"id":"83","title":"Extend task model with file tracking fields","status":"done","created_at":"2026-04-10T14:29:06.982679678Z","doc_hash":"90df3ade11b240dd0929b0eea719bb2d81eaf1024801964352172b87558eb8ad"}
 {"id":"84","title":"Build inverted index computation function","status":"todo","dependencies":["83"],"created_at":"2026-04-10T14:29:13.479576819Z","doc_hash":"093fb54f8ff45c1a4c1b695ad85e1b9c7d06ef67f18d884d2137d09ce35a31bc"}
 {"id":"85","title":"Build conflict graph computation function","status":"todo","dependencies":["83","84"],"created_at":"2026-04-10T14:29:34.772392514Z","doc_hash":"a25bad58074b0b3f3e3957549035624993004aa22b5094fba918a75950b19632"}
 {"id":"86","title":"Build parallel groups computation function","status":"todo","dependencies":["83","84","85"],"created_at":"2026-04-10T14:29:59.161146314Z","doc_hash":"a4bfc5d5a63c4b7ecd1f6fed952a51db248d3dc15091694e812bc92702b7d36a"}
