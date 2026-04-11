@@ -43,11 +43,11 @@ func TestReadyCommand_AllReady(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add tasks with no dependencies - all should be ready
-	_, err := s.Add("Task 1", "detail 1", nil, nil)
+	_, err := s.Add("Task 1", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Task 2", "detail 2", nil, nil)
+	_, err = s.Add("Task 2", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -78,13 +78,13 @@ func TestReadyCommand_BlockedByTodo(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add a todo task
-	task1, err := s.Add("Blocking task", "detail 1", nil, nil)
+	task1, err := s.Add("Blocking task", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
 	// Add another task that depends on it
-	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil)
+	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestReadyCommand_BlockedByInProgress(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add an in-progress task
-	task1, err := s.Add("In-progress task", "detail 1", nil, nil)
+	task1, err := s.Add("In-progress task", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestReadyCommand_BlockedByInProgress(t *testing.T) {
 	}
 
 	// Add another task that depends on it
-	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil)
+	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestReadyCommand_DoneDependency(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add a done task
-	task1, err := s.Add("Done task", "detail 1", nil, nil)
+	task1, err := s.Add("Done task", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestReadyCommand_DoneDependency(t *testing.T) {
 	}
 
 	// Add another task that depends on it - should be ready
-	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil)
+	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestReadyCommand_BlockedDependency(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add a blocked task
-	task1, err := s.Add("Blocked task", "detail 1", nil, nil)
+	task1, err := s.Add("Blocked task", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestReadyCommand_BlockedDependency(t *testing.T) {
 	}
 
 	// Add another task that depends on it - should be ready (blocked doesn't block)
-	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil)
+	_, err = s.Add("Dependent task", "detail 2", []string{task1.ID}, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -230,7 +230,7 @@ func TestReadyCommand_JSONOutput(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add a ready task
-	_, err := s.Add("Ready task", "detail 1", nil, nil)
+	_, err := s.Add("Ready task", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -287,7 +287,7 @@ func TestReadyCommand_MissingDependency(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add a task with a non-existent dependency
-	_, err := s.Add("Task with missing dep", "detail 1", []string{"999"}, nil)
+	_, err := s.Add("Task with missing dep", "detail 1", []string{"999"}, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -320,12 +320,12 @@ func TestReadyCommand_NoDependencies(t *testing.T) {
 	s, dir := setupReadyTestStore(t)
 
 	// Add tasks with various statuses but no dependencies
-	_, err := s.Add("Todo task 1", "detail 1", nil, nil)
+	_, err := s.Add("Todo task 1", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
 
-	task2, err2 := s.Add("Todo task 2", "detail 2", nil, nil)
+	task2, err2 := s.Add("Todo task 2", "detail 2", nil, nil, task.PriorityNone)
 	if err2 != nil {
 		t.Fatalf("Add: %v", err2)
 	}
@@ -334,7 +334,7 @@ func TestReadyCommand_NoDependencies(t *testing.T) {
 		t.Fatalf("UpdateStatus: %v", err2)
 	}
 
-	task3, err3 := s.Add("Todo task 3", "detail 3", nil, nil)
+	task3, err3 := s.Add("Todo task 3", "detail 3", nil, nil, task.PriorityNone)
 	if err3 != nil {
 		t.Fatalf("Add: %v", err3)
 	}

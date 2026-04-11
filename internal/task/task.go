@@ -30,11 +30,36 @@ func (s Status) IsValid() bool {
 	return false
 }
 
+// Priority represents the urgency level of a task.
+type Priority string
+
+const (
+	PriorityNone     Priority = ""
+	PriorityLow      Priority = "low"
+	PriorityMedium   Priority = "medium"
+	PriorityHigh     Priority = "high"
+	PriorityCritical Priority = "critical"
+)
+
+// ValidPriorities lists all accepted priority values.
+var ValidPriorities = []Priority{PriorityNone, PriorityLow, PriorityMedium, PriorityHigh, PriorityCritical}
+
+// IsValid reports whether p is a recognised priority string.
+func (p Priority) IsValid() bool {
+	for _, v := range ValidPriorities {
+		if p == v {
+			return true
+		}
+	}
+	return false
+}
+
 // Task holds the metadata stored in the JSONL file.
 type Task struct {
 	ID           string    `json:"id"`
 	Title        string    `json:"title"`
 	Status       Status    `json:"status"`
+	Priority     Priority  `json:"priority,omitempty"`
 	Dependencies []string  `json:"dependencies,omitempty"`
 	Tags         []string  `json:"tags,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`

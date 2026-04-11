@@ -22,15 +22,15 @@ func TestListCommand_TitleFilter_BasicMatch(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
 	// Add tasks with different titles
-	_, err := s.Add("Implement authentication", "detail 1", nil, nil)
+	_, err := s.Add("Implement authentication", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Fix database bug", "detail 2", nil, nil)
+	_, err = s.Add("Fix database bug", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Update documentation", "detail 3", nil, nil)
+	_, err = s.Add("Update documentation", "detail 3", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -86,11 +86,11 @@ func TestListCommand_TitleFilter_BasicMatch(t *testing.T) {
 func TestListCommand_TitleFilter_CaseInsensitive(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
-	_, err := s.Add("Task with DATABASE connection", "detail 1", nil, nil)
+	_, err := s.Add("Task with DATABASE connection", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Another task", "detail 2", nil, nil)
+	_, err = s.Add("Another task", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -139,11 +139,11 @@ func TestListCommand_TitleFilter_CaseInsensitive(t *testing.T) {
 func TestListCommand_TitleFilter_NoMatch(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
-	_, err := s.Add("Task one", "detail 1", nil, nil)
+	_, err := s.Add("Task one", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Task two", "detail 2", nil, nil)
+	_, err = s.Add("Task two", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -190,11 +190,11 @@ func TestListCommand_TitleFilter_NoMatch(t *testing.T) {
 func TestListCommand_TitleFilter_EmptyFilter(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
-	_, err := s.Add("Task alpha", "detail 1", nil, nil)
+	_, err := s.Add("Task alpha", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Task beta", "detail 2", nil, nil)
+	_, err = s.Add("Task beta", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -242,11 +242,11 @@ func TestListCommand_TitleFilter_EmptyFilter(t *testing.T) {
 func TestListCommand_TitleFilter_JSONOutput(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
-	_, err := s.Add("Build API endpoint", "detail 1", nil, nil)
+	_, err := s.Add("Build API endpoint", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Write tests", "detail 2", nil, nil)
+	_, err = s.Add("Write tests", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -305,7 +305,7 @@ func TestListCommand_TitleFilter_JSONOutput(t *testing.T) {
 func TestListCommand_TitleFilter_CombinedWithStatus(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
-	task1, err := s.Add("Todo task", "detail 1", nil, nil)
+	task1, err := s.Add("Todo task", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -314,7 +314,7 @@ func TestListCommand_TitleFilter_CombinedWithStatus(t *testing.T) {
 		t.Fatalf("UpdateStatus: %v", err)
 	}
 
-	_, err = s.Add("Done item", "detail 2", nil, nil)
+	_, err = s.Add("Done item", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -369,15 +369,15 @@ func TestListCommand_TitleFilter_CombinedWithStatus(t *testing.T) {
 func TestListCommand_TitleFilter_CombinedWithTag(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
-	_, err := s.Add("Backend task", "detail 1", nil, []string{"api"})
+	_, err := s.Add("Backend task", "detail 1", nil, []string{"api"}, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Frontend task", "detail 2", nil, []string{"ui"})
+	_, err = s.Add("Frontend task", "detail 2", nil, []string{"ui"}, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Backend item", "detail 3", nil, []string{"ui"})
+	_, err = s.Add("Backend item", "detail 3", nil, []string{"ui"}, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -434,15 +434,15 @@ func TestListCommand_TitleFilter_CombinedWithTag(t *testing.T) {
 func TestListCommand_TitleFilter_SubstringMatch(t *testing.T) {
 	s, dir := setupListTestStore(t)
 
-	_, err := s.Add("Initialize project structure", "detail 1", nil, nil)
+	_, err := s.Add("Initialize project structure", "detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Final configuration", "detail 2", nil, nil)
+	_, err = s.Add("Final configuration", "detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Run validation tests", "detail 3", nil, nil)
+	_, err = s.Add("Run validation tests", "detail 3", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}

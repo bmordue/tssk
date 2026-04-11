@@ -30,7 +30,7 @@ func TestLoadAllEmpty(t *testing.T) {
 func TestAddAndGet(t *testing.T) {
 	s := newTempStore(t)
 
-	tk, err := s.Add("My first task", "Some detail text", nil, nil)
+	tk, err := s.Add("My first task", "Some detail text", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestAddCreatesDetailFile(t *testing.T) {
 	s := store.New(dir)
 
 	detail := "# My Task\n\nSome details here."
-	tk, err := s.Add("Test detail file", detail, nil, nil)
+	tk, err := s.Add("Test detail file", detail, nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestPrefixMatching(t *testing.T) {
 	s := newTempStore(t)
 	// Add 10 tasks to produce IDs "1" through "10".
 	for i := 0; i < 10; i++ {
-		if _, err := s.Add("Task", "", nil, nil); err != nil {
+		if _, err := s.Add("Task", "", nil, nil, task.PriorityNone); err != nil {
 			t.Fatalf("Add task %d: %v", i, err)
 		}
 	}
@@ -152,7 +152,7 @@ func TestAmbiguousPrefix(t *testing.T) {
 
 func TestUpdateStatus(t *testing.T) {
 	s := newTempStore(t)
-	tk, _ := s.Add("Status test", "", nil, nil)
+	tk, _ := s.Add("Status test", "", nil, nil, task.PriorityNone)
 
 	updated, err := s.UpdateStatus(tk.ID, task.StatusDone)
 	if err != nil {
@@ -174,11 +174,11 @@ func TestUpdateStatus(t *testing.T) {
 
 func TestAddAndRemoveDep(t *testing.T) {
 	s := newTempStore(t)
-	t1, err := s.Add("First task", "", nil, nil)
+	t1, err := s.Add("First task", "", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add t1: %v", err)
 	}
-	t2, err := s.Add("Second task", "", nil, nil)
+	t2, err := s.Add("Second task", "", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add t2: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestAddAndRemoveDep(t *testing.T) {
 func TestMultipleTasksLoadAll(t *testing.T) {
 	s := newTempStore(t)
 	for i := 0; i < 5; i++ {
-		if _, err := s.Add("Task", "", nil, nil); err != nil {
+		if _, err := s.Add("Task", "", nil, nil, task.PriorityNone); err != nil {
 			t.Fatalf("Add task %d: %v", i, err)
 		}
 	}
@@ -241,7 +241,7 @@ func TestMultipleTasksLoadAll(t *testing.T) {
 func TestReadDetail(t *testing.T) {
 	s := newTempStore(t)
 	detail := "# Detail\n\nContent."
-	tk, _ := s.Add("Task with detail", detail, nil, nil)
+	tk, _ := s.Add("Task with detail", detail, nil, nil, task.PriorityNone)
 
 	got, err := s.ReadDetail(tk)
 	if err != nil {
@@ -254,7 +254,7 @@ func TestReadDetail(t *testing.T) {
 
 func TestAddTagsDeduplication(t *testing.T) {
 	s := newTempStore(t)
-	tk, addErr := s.Add("Tag test task", "", nil, []string{"alpha"})
+	tk, addErr := s.Add("Tag test task", "", nil, []string{"alpha"}, task.PriorityNone)
 	if addErr != nil {
 		t.Fatalf("Add: %v", addErr)
 	}
@@ -278,7 +278,7 @@ func TestAddTagsDeduplication(t *testing.T) {
 
 func TestRemoveTagsNonExistent(t *testing.T) {
 	s := newTempStore(t)
-	tk, addErr := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"})
+	tk, addErr := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"}, task.PriorityNone)
 	if addErr != nil {
 		t.Fatalf("Add: %v", addErr)
 	}
@@ -299,7 +299,7 @@ func TestRemoveTagsNonExistent(t *testing.T) {
 
 func TestSetTagsPersistence(t *testing.T) {
 	s := newTempStore(t)
-	tk, addErr := s.Add("SetTags persistence test", "", nil, []string{"old"})
+	tk, addErr := s.Add("SetTags persistence test", "", nil, []string{"old"}, task.PriorityNone)
 	if addErr != nil {
 		t.Fatalf("Add: %v", addErr)
 	}
@@ -326,7 +326,7 @@ func TestSetTagsPersistence(t *testing.T) {
 
 func TestUpdateTitle(t *testing.T) {
 	s := newTempStore(t)
-	tk, err := s.Add("Original title", "Detail text", nil, nil)
+	tk, err := s.Add("Original title", "Detail text", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -357,7 +357,7 @@ func TestUpdateTitle(t *testing.T) {
 
 func TestUpdateTitleWithDetail(t *testing.T) {
 	s := newTempStore(t)
-	tk, err := s.Add("Title one", "Some detail", nil, nil)
+	tk, err := s.Add("Title one", "Some detail", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -390,7 +390,7 @@ func TestUpdateTitleWithDetail(t *testing.T) {
 
 func TestUpdateDetail(t *testing.T) {
 	s := newTempStore(t)
-	tk, err := s.Add("Test task", "Original detail", nil, nil)
+	tk, err := s.Add("Test task", "Original detail", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}

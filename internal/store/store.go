@@ -145,10 +145,10 @@ func (s *Store) Get(id string) (*task.Task, error) {
 }
 
 // Add creates a new task with the given title and detail text, using deps as
-// the initial dependency task IDs and tags as the initial tags assigned to the
-// task, writes the detail markdown via the backend, and appends the task
-// metadata.
-func (s *Store) Add(title, detail string, deps []string, tags []string) (*task.Task, error) {
+// the initial dependency task IDs, tags as the initial tags assigned to the
+// task, and priority as the urgency level. It writes the detail markdown via
+// the backend, and appends the task metadata.
+func (s *Store) Add(title, detail string, deps []string, tags []string, priority task.Priority) (*task.Task, error) {
 	tasks, err := s.LoadAll()
 	if err != nil {
 		return nil, err
@@ -160,6 +160,7 @@ func (s *Store) Add(title, detail string, deps []string, tags []string) (*task.T
 		Status:       task.StatusTodo,
 		Dependencies: deps,
 		Tags:         tags,
+		Priority:     priority,
 		CreatedAt:    time.Now().UTC(),
 	}
 
@@ -408,6 +409,30 @@ func (s *Store) UpdateDetail(id string, detail string) (*task.Task, error) {
 	}
 	if err := s.backend.WriteDetail(filenameHash, []byte(detail)); err != nil {
 		return nil, fmt.Errorf("writing detail: %w", err)
+	}
+
+	return found, nil
+}
+
+// UpdatePriority changes the priority of the task identified by id.
+func (s *Store) UpdatePriority(id string, priority task.Priority) (*task.Task, error) {
+	if !priority.IsValid() {
+		return nil, fmt.Errorf("unknown priority %q; valid values: low, medium, high, critical", priority)
+	}
+
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	found, err := s.resolveOne(tasks, id)
+	if err != nil {
+		return nil, err
+	}
+
+	found.Priority = priority
+	if err := s.saveAll(tasks); err != nil {
+		return nil, err
 	}
 
 	return found, nil

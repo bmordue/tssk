@@ -48,7 +48,7 @@ func setupTestStore(t *testing.T) *store.Store {
 	}
 
 	for _, tt := range tasks {
-		tsk, err := st.Add(tt.title, tt.detail, tt.deps, tt.tags)
+		tsk, err := st.Add(tt.title, tt.detail, tt.deps, tt.tags, task.PriorityNone)
 		if err != nil {
 			t.Fatal(err)
 		}

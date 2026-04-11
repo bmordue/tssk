@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"github.com/bmordue/tssk/internal/task"
 	"os"
 	"strings"
 	"testing"
@@ -19,7 +20,7 @@ func setupEditTestStore(t *testing.T) (*store.Store, string) {
 func TestEditCommand_UpdateTitle(t *testing.T) {
 	s, dir := setupEditTestStore(t)
 
-	task, err := s.Add("Original title", "Some detail", nil, nil)
+	task, err := s.Add("Original title", "Some detail", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -75,7 +76,7 @@ func TestEditCommand_UpdateTitle(t *testing.T) {
 func TestEditCommand_UpdateDetail(t *testing.T) {
 	s, dir := setupEditTestStore(t)
 
-	task, err := s.Add("Test task", "Original detail", nil, nil)
+	task, err := s.Add("Test task", "Original detail", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -113,7 +114,7 @@ func TestEditCommand_UpdateDetail(t *testing.T) {
 func TestEditCommand_UpdateBothTitleAndDetail(t *testing.T) {
 	s, dir := setupEditTestStore(t)
 
-	task, err := s.Add("Original title", "Original detail", nil, nil)
+	task, err := s.Add("Original title", "Original detail", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -158,7 +159,7 @@ func TestEditCommand_UpdateBothTitleAndDetail(t *testing.T) {
 func TestEditCommand_NoFlagsProvided(t *testing.T) {
 	s, dir := setupEditTestStore(t)
 
-	_, err := s.Add("Test task", "Detail", nil, nil)
+	_, err := s.Add("Test task", "Detail", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -176,8 +177,8 @@ func TestEditCommand_NoFlagsProvided(t *testing.T) {
 		t.Fatal("expected error when no flags provided, got none")
 	}
 
-	if !strings.Contains(err.Error(), "at least one of --title or --detail") {
-		t.Errorf("expected error about providing --title or --detail, got: %v", err)
+	if !strings.Contains(err.Error(), "at least one of --title, --detail, or --priority") {
+		t.Errorf("expected error about providing --title, --detail, or --priority, got: %v", err)
 	}
 }
 
@@ -207,11 +208,11 @@ func TestEditCommand_TaskNotFound(t *testing.T) {
 func TestEditCommand_PrefixMatch(t *testing.T) {
 	s, dir := setupEditTestStore(t)
 
-	_, err := s.Add("Task one", "Detail 1", nil, nil)
+	_, err := s.Add("Task one", "Detail 1", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
-	_, err = s.Add("Task two", "Detail 2", nil, nil)
+	_, err = s.Add("Task two", "Detail 2", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -245,7 +246,7 @@ func TestEditCommand_PrefixMatch(t *testing.T) {
 func TestEditCommand_UpdateTitleWithEmptyDetail(t *testing.T) {
 	s, dir := setupEditTestStore(t)
 
-	task, err := s.Add("Original", "", nil, nil)
+	task, err := s.Add("Original", "", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -278,7 +279,7 @@ func TestEditCommand_UpdateTitleWithEmptyDetail(t *testing.T) {
 func TestEditCommand_UpdateDetailPreservesTitle(t *testing.T) {
 	s, dir := setupEditTestStore(t)
 
-	task, err := s.Add("Keep this title", "Old detail", nil, nil)
+	task, err := s.Add("Keep this title", "Old detail", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
