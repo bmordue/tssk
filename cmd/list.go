@@ -29,12 +29,13 @@ type collectedTaskOutput struct {
 var listStatus string
 var listAllCollections bool
 var listTag string
+var listTitle string
 var listJSON bool
 
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List tasks",
-	Long:  `List all tasks, optionally filtered by status or tag.`,
+	Long:  `List all tasks, optionally filtered by status, title, or tag.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var statusFilter *task.Status
 		if listStatus != "" {
@@ -46,7 +47,7 @@ var listCmd = &cobra.Command{
 		}
 
 		if listAllCollections {
-			return listAllCollectionsCmd(statusFilter, listJSON, listTag)
+			return listAllCollectionsCmd(statusFilter, listJSON, listTag, listTitle)
 		}
 
 		st, err := openStore()
@@ -64,6 +65,12 @@ var listCmd = &cobra.Command{
 				if statusFilter != nil && t.Status != *statusFilter {
 					continue
 				}
+				if listTag != "" && !t.HasTag(listTag) {
+					continue
+				}
+				if listTitle != "" && !strings.Contains(strings.ToLower(t.Title), strings.ToLower(listTitle)) {
+					continue
+				}
 				filtered = append(filtered, *t)
 			}
 			if filtered == nil {
@@ -79,6 +86,9 @@ var listCmd = &cobra.Command{
 				continue
 			}
 			if listTag != "" && !t.HasTag(listTag) {
+				continue
+			}
+			if listTitle != "" && !strings.Contains(strings.ToLower(t.Title), strings.ToLower(listTitle)) {
 				continue
 			}
 			tags := "-"
@@ -121,7 +131,7 @@ func qualifyDeps(deps []string, collection string) []string {
 
 // listAllCollectionsCmd handles --all-collections: loads tasks from every
 // configured collection and prints them with a COLLECTION column.
-func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool, tagFilter string) error {
+func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool, tagFilter string, titleFilter string) error {
 	ms, err := openMultiStore()
 	if err != nil {
 		return err
@@ -135,6 +145,12 @@ func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool, tagFilter
 		var filtered []collectedTaskOutput
 		for _, ct := range collected {
 			if statusFilter != nil && ct.Status != *statusFilter {
+				continue
+			}
+			if tagFilter != "" && !ct.HasTag(tagFilter) {
+				continue
+			}
+			if titleFilter != "" && !strings.Contains(strings.ToLower(ct.Title), strings.ToLower(titleFilter)) {
 				continue
 			}
 			filtered = append(filtered, collectedTaskOutput{
@@ -162,6 +178,9 @@ func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool, tagFilter
 		if tagFilter != "" && !ct.HasTag(tagFilter) {
 			continue
 		}
+		if titleFilter != "" && !strings.Contains(strings.ToLower(ct.Title), strings.ToLower(titleFilter)) {
+			continue
+		}
 		collLabel := ct.Collection
 		if collLabel == "" {
 			collLabel = primaryCollectionLabel
@@ -183,6 +202,7 @@ func listAllCollectionsCmd(statusFilter *task.Status, jsonOutput bool, tagFilter
 
 func init() {
 	listCmd.Flags().StringVarP(&listStatus, "status", "s", "", "Filter by status (todo, in-progress, done, blocked)")
+	listCmd.Flags().StringVar(&listTitle, "title", "", "Filter by title (case-insensitive substring match)")
 	listCmd.Flags().BoolVarP(&listAllCollections, "all-collections", "a", false, "Include tasks from all configured collections")
 	listCmd.Flags().StringVar(&listTag, "tag", "", "Filter by tag")
 	listCmd.Flags().BoolVar(&listJSON, "json", false, "Output tasks as JSON")
