@@ -328,6 +328,91 @@ func (s *Store) SetTags(id string, tags []string) error {
 	return s.saveAll(tasks)
 }
 
+// UpdateTitle changes the title of the task identified by id.
+// Since the title is part of the content-addressed hash, this will create a
+// new detail file with the updated hash and delete the old one.
+func (s *Store) UpdateTitle(id, title string) (*task.Task, error) {
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	found, err := s.resolveOne(tasks, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Store old hash for cleanup
+	oldHash := found.DocHash
+
+	// Update title and recompute hash
+	found.Title = title
+	if err := found.ComputeDocHash(); err != nil {
+		return nil, fmt.Errorf("computing doc hash: %w", err)
+	}
+
+	// Read old detail content
+	oldFilenameHash := oldHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(oldHash) {
+		oldFilenameHash = oldHash[:s.displayHashLength]
+	}
+	detail, err := s.backend.ReadDetail(oldFilenameHash)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, fmt.Errorf("reading old detail: %w", err)
+	}
+
+	// Write new detail file with new hash
+	newFilenameHash := found.DocHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(found.DocHash) {
+		newFilenameHash = found.DocHash[:s.displayHashLength]
+	}
+	if len(detail) > 0 {
+		if err := s.backend.WriteDetail(newFilenameHash, detail); err != nil {
+			return nil, fmt.Errorf("writing new detail: %w", err)
+		}
+	}
+
+	// Delete old detail file
+	if err := s.backend.DeleteDetail(oldFilenameHash); err != nil && !errors.Is(err, ErrNotFound) {
+		// Non-fatal: the old file might not exist
+		// Continue with save
+	}
+
+	if err := s.saveAll(tasks); err != nil {
+		// Best-effort rollback: try to restore old detail file
+		if len(detail) > 0 {
+			_ = s.backend.WriteDetail(oldFilenameHash, detail)
+		}
+		return nil, err
+	}
+
+	return found, nil
+}
+
+// UpdateDetail updates the markdown detail text for the task identified by id.
+func (s *Store) UpdateDetail(id string, detail string) (*task.Task, error) {
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	found, err := s.resolveOne(tasks, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write updated detail
+	filenameHash := found.DocHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(found.DocHash) {
+		filenameHash = found.DocHash[:s.displayHashLength]
+	}
+	if err := s.backend.WriteDetail(filenameHash, []byte(detail)); err != nil {
+		return nil, fmt.Errorf("writing detail: %w", err)
+	}
+
+	return found, nil
+}
+
 // resolveOne returns the unique task whose ID equals prefix exactly, or – if
 // no exact match exists – the unique task whose ID begins with prefix.
 // Returns ErrNotFound when no task matches, ErrAmbiguous when multiple tasks

@@ -110,6 +110,21 @@ tssk status T-1 done
 
 Valid status values: `todo`, `in-progress`, `done`, `blocked`
 
+### Edit a task
+
+```bash
+tssk edit T-1 --title "New title"
+tssk edit T-1 --detail "New detail text"
+tssk edit T-1 --title "New title" --detail "New detail text"
+```
+
+Flags:
+
+- `--title` - Update task title
+- `--detail` - Update task detail text
+
+Note: Changing the title updates the content-addressed hash and will create a new detail file.
+
 ### Manage dependencies
 
 ```bash

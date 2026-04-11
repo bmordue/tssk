@@ -32,6 +32,7 @@ func init() {
 	rootCmd.AddCommand(readyCmd)
 	rootCmd.AddCommand(showCmd)
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(editCmd)
 	rootCmd.AddCommand(depsCmd)
 	rootCmd.AddCommand(tagsCmd)
 	rootCmd.AddCommand(serveCmd)

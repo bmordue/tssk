@@ -323,3 +323,115 @@ func TestSetTagsPersistence(t *testing.T) {
 		t.Error("expected old tag to be replaced by SetTags")
 	}
 }
+
+func TestUpdateTitle(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Original title", "Detail text", nil, nil)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	oldHash := tk.DocHash
+
+	updated, err := s.UpdateTitle(tk.ID, "New title")
+	if err != nil {
+		t.Fatalf("UpdateTitle: %v", err)
+	}
+
+	if updated.Title != "New title" {
+		t.Errorf("expected title 'New title', got %q", updated.Title)
+	}
+	if updated.DocHash == oldHash {
+		t.Error("expected DocHash to change after title update")
+	}
+
+	// Verify persistence
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if reloaded.Title != "New title" {
+		t.Errorf("expected persisted title 'New title', got %q", reloaded.Title)
+	}
+}
+
+func TestUpdateTitleWithDetail(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Title one", "Some detail", nil, nil)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	oldHash := tk.DocHash
+
+	_, err = s.UpdateTitle(tk.ID, "Title two")
+	if err != nil {
+		t.Fatalf("UpdateTitle: %v", err)
+	}
+
+	// Verify detail file migrated
+	updated, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	detail, err := s.ReadDetail(updated)
+	if err != nil {
+		t.Fatalf("ReadDetail: %v", err)
+	}
+	if detail != "Some detail" {
+		t.Errorf("expected detail 'Some detail', got %q", detail)
+	}
+
+	// Verify hash changed
+	if updated.DocHash == oldHash {
+		t.Error("expected DocHash to change after title update")
+	}
+}
+
+func TestUpdateDetail(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Test task", "Original detail", nil, nil)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	updated, err := s.UpdateDetail(tk.ID, "Updated detail text")
+	if err != nil {
+		t.Fatalf("UpdateDetail: %v", err)
+	}
+
+	if updated.ID != tk.ID {
+		t.Errorf("expected ID %q, got %q", tk.ID, updated.ID)
+	}
+
+	// Verify persistence
+	detail, err := s.ReadDetail(updated)
+	if err != nil {
+		t.Fatalf("ReadDetail: %v", err)
+	}
+	if detail != "Updated detail text" {
+		t.Errorf("expected detail 'Updated detail text', got %q", detail)
+	}
+}
+
+func TestUpdateTitleNotFound(t *testing.T) {
+	s := newTempStore(t)
+	_, err := s.UpdateTitle("999", "New title")
+	if err == nil {
+		t.Fatal("expected error for non-existent task, got none")
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got: %v", err)
+	}
+}
+
+func TestUpdateDetailNotFound(t *testing.T) {
+	s := newTempStore(t)
+	_, err := s.UpdateDetail("999", "New detail")
+	if err == nil {
+		t.Fatal("expected error for non-existent task, got none")
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got: %v", err)
+	}
+}
