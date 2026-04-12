@@ -360,7 +360,7 @@ func (s *Store) UpdateTitle(id, title string) (*task.Task, error) {
 		return nil, err
 	}
 
-	found, loadErr := s.resolveOne(tasks, id)
+	found, loadErr := s.resolveOne(id)
 	if loadErr != nil {
 		return nil, loadErr
 	}
@@ -415,12 +415,11 @@ func (s *Store) UpdateTitle(id, title string) (*task.Task, error) {
 
 // UpdateDetail updates the markdown detail text for the task identified by id.
 func (s *Store) UpdateDetail(id string, detail string) (*task.Task, error) {
-	tasks, err := s.LoadAll()
-	if err != nil {
+	if _, err := s.LoadAll(); err != nil {
 		return nil, err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +447,7 @@ func (s *Store) UpdatePriority(id string, priority task.Priority) (*task.Task, e
 		return nil, err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return nil, err
 	}
