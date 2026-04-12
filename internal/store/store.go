@@ -342,9 +342,9 @@ func (s *Store) UpdateTitle(id, title string) (*task.Task, error) {
 		return nil, err
 	}
 
-	found, err := s.resolveOne(tasks, id)
-	if err != nil {
-		return nil, err
+	found, loadErr := s.resolveOne(tasks, id)
+	if loadErr != nil {
+		return nil, loadErr
 	}
 
 	// Store old hash for cleanup
@@ -352,8 +352,8 @@ func (s *Store) UpdateTitle(id, title string) (*task.Task, error) {
 
 	// Update title and recompute hash
 	found.Title = title
-	if err := found.ComputeDocHash(); err != nil {
-		return nil, fmt.Errorf("computing doc hash: %w", err)
+	if hashErr := found.ComputeDocHash(); hashErr != nil {
+		return nil, fmt.Errorf("computing doc hash: %w", hashErr)
 	}
 
 	// Read old detail content
@@ -378,9 +378,10 @@ func (s *Store) UpdateTitle(id, title string) (*task.Task, error) {
 	}
 
 	// Delete old detail file
-	if err := s.backend.DeleteDetail(oldFilenameHash); err != nil && !errors.Is(err, ErrNotFound) {
+	if delErr := s.backend.DeleteDetail(oldFilenameHash); delErr != nil && !errors.Is(delErr, ErrNotFound) {
 		// Non-fatal: the old file might not exist
 		// Continue with save
+		_ = delErr // Explicitly ignore non-fatal error
 	}
 
 	if err := s.saveAll(tasks); err != nil {
