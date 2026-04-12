@@ -131,24 +131,63 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 		s.sortedIDs = nil
 		return fmt.Errorf("saving tasks: %w", err)
 	}
-	s.cache = tasks
 
-	// Reuse existing idMap capacity if possible.
+	// Optimization: check if we can skip index rebuilding.
+	// If the tasks slice contains the exact same pointers as our cache,
+	// then neither the idMap nor the sortedIDs need to change.
+	if s.idMap != nil && s.sortedIDs != nil && len(tasks) == len(s.cache) {
+		same := true
+		for i := range tasks {
+			if tasks[i] != s.cache[i] {
+				same = false
+				break
+			}
+		}
+		if same {
+			return nil
+		}
+	}
+
+	// Optimization: incremental update if exactly one task was appended.
+	if s.idMap != nil && s.sortedIDs != nil && len(tasks) == len(s.cache)+1 {
+		same := true
+		for i := range s.cache {
+			if tasks[i] != s.cache[i] {
+				same = false
+				break
+			}
+		}
+		if same {
+			newT := tasks[len(tasks)-1]
+			if _, exists := s.idMap[newT.ID]; !exists {
+				s.idMap[newT.ID] = newT
+				idx := sort.SearchStrings(s.sortedIDs, newT.ID)
+				s.sortedIDs = append(s.sortedIDs, "")
+				copy(s.sortedIDs[idx+1:], s.sortedIDs[idx:])
+				s.sortedIDs[idx] = newT.ID
+				s.cache = tasks
+				return nil
+			}
+		}
+	}
+
+	// Fallback: full rebuild of indexes.
+	s.cache = tasks
 	if s.idMap == nil {
 		s.idMap = make(map[string]*task.Task, len(tasks))
 	} else {
 		clear(s.idMap)
 	}
+
 	for _, t := range tasks {
 		s.idMap[t.ID] = t
 	}
 
-	sortedIDs := make([]string, 0, len(s.idMap))
+	s.sortedIDs = make([]string, 0, len(s.idMap))
 	for id := range s.idMap {
-		sortedIDs = append(sortedIDs, id)
+		s.sortedIDs = append(s.sortedIDs, id)
 	}
-	sort.Strings(sortedIDs)
-	s.sortedIDs = sortedIDs
+	sort.Strings(s.sortedIDs)
 
 	return nil
 }
