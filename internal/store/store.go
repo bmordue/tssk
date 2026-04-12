@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -34,6 +35,7 @@ type Store struct {
 	displayHashLength int
 	cache             []*task.Task
 	idMap             map[string]*task.Task
+	sortedIDs         []string
 }
 
 // New creates a Store backed by the local filesystem rooted at root.
@@ -94,6 +96,14 @@ func (s *Store) LoadAll() ([]*task.Task, error) {
 	}
 	s.cache = tasks
 	s.idMap = idMap
+
+	sortedIDs := make([]string, 0, len(idMap))
+	for id := range idMap {
+		sortedIDs = append(sortedIDs, id)
+	}
+	sort.Strings(sortedIDs)
+	s.sortedIDs = sortedIDs
+
 	return tasks, nil
 }
 
@@ -118,6 +128,7 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 		// contains in-memory mutations) was not successfully persisted.
 		s.cache = nil
 		s.idMap = nil
+		s.sortedIDs = nil
 		return fmt.Errorf("saving tasks: %w", err)
 	}
 	s.cache = tasks
@@ -131,17 +142,24 @@ func (s *Store) saveAll(tasks []*task.Task) error {
 	for _, t := range tasks {
 		s.idMap[t.ID] = t
 	}
+
+	sortedIDs := make([]string, 0, len(s.idMap))
+	for id := range s.idMap {
+		sortedIDs = append(sortedIDs, id)
+	}
+	sort.Strings(sortedIDs)
+	s.sortedIDs = sortedIDs
+
 	return nil
 }
 
 // Get returns the task whose ID exactly matches id, or – when no exact match
 // exists – the unique task whose ID has id as a unique prefix.
 func (s *Store) Get(id string) (*task.Task, error) {
-	tasks, err := s.LoadAll()
-	if err != nil {
+	if _, err := s.LoadAll(); err != nil {
 		return nil, err
 	}
-	return s.resolveOne(tasks, id)
+	return s.resolveOne(id)
 }
 
 // Add creates a new task with the given title and detail text, using deps as
@@ -200,7 +218,7 @@ func (s *Store) UpdateStatus(id string, status task.Status) (*task.Task, error) 
 		return nil, err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return nil, err
 	}
@@ -219,11 +237,11 @@ func (s *Store) AddDep(id, dep string) error {
 		return err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return err
 	}
-	depTask, err := s.resolveOne(tasks, dep)
+	depTask, err := s.resolveOne(dep)
 	if err != nil {
 		return fmt.Errorf("dependency: %w", err)
 	}
@@ -243,11 +261,11 @@ func (s *Store) RemoveDep(id, dep string) error {
 		return err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return err
 	}
-	depTask, err := s.resolveOne(tasks, dep)
+	depTask, err := s.resolveOne(dep)
 	if err != nil {
 		return fmt.Errorf("dependency: %w", err)
 	}
@@ -286,7 +304,7 @@ func (s *Store) AddTags(id string, tags []string) error {
 		return err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return err
 	}
@@ -305,7 +323,7 @@ func (s *Store) RemoveTags(id string, tags []string) error {
 		return err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return err
 	}
@@ -324,7 +342,7 @@ func (s *Store) SetTags(id string, tags []string) error {
 		return err
 	}
 
-	found, err := s.resolveOne(tasks, id)
+	found, err := s.resolveOne(id)
 	if err != nil {
 		return err
 	}
@@ -447,30 +465,47 @@ func (s *Store) UpdatePriority(id string, priority task.Priority) (*task.Task, e
 // no exact match exists – the unique task whose ID begins with prefix.
 // Returns ErrNotFound when no task matches, ErrAmbiguous when multiple tasks
 // share the same prefix.
-func (s *Store) resolveOne(tasks []*task.Task, prefix string) (*task.Task, error) {
+func (s *Store) resolveOne(prefix string) (*task.Task, error) {
 	// Exact match always wins over prefix matching.
 	if t, ok := s.idMap[prefix]; ok {
 		return t, nil
 	}
 
-	// Collect all tasks whose ID begins with prefix.
-	var matches []*task.Task
-	for _, t := range tasks {
-		if strings.HasPrefix(t.ID, prefix) {
-			matches = append(matches, t)
+	// Use binary search on sortedIDs to find tasks whose ID begins with prefix.
+	i := sort.SearchStrings(s.sortedIDs, prefix)
+	var matches []string
+	for j := i; j < len(s.sortedIDs); j++ {
+		id := s.sortedIDs[j]
+		if !strings.HasPrefix(id, prefix) {
+			break
+		}
+		matches = append(matches, id)
+		if len(matches) > 1 {
+			// Early exit for ambiguity: collect just a few more IDs for the error message.
+			const maxErrorIDs = 5
+			for k := j + 1; k < len(s.sortedIDs) && len(matches) < maxErrorIDs; k++ {
+				nextID := s.sortedIDs[k]
+				if !strings.HasPrefix(nextID, prefix) {
+					break
+				}
+				matches = append(matches, nextID)
+			}
+			msg := strings.Join(matches, ", ")
+			if j+1+maxErrorIDs-2 < len(s.sortedIDs) && strings.HasPrefix(s.sortedIDs[j+1+maxErrorIDs-2], prefix) {
+				msg += ", ..."
+			}
+			return nil, fmt.Errorf("%w: %q matches: %s", ErrAmbiguous, prefix, msg)
 		}
 	}
+
 	switch len(matches) {
 	case 1:
-		return matches[0], nil
+		return s.idMap[matches[0]], nil
 	case 0:
 		return nil, fmt.Errorf("%w: %s", ErrNotFound, prefix)
 	default:
-		ids := make([]string, len(matches))
-		for i, m := range matches {
-			ids[i] = m.ID
-		}
-		return nil, fmt.Errorf("%w: %q matches: %s", ErrAmbiguous, prefix, strings.Join(ids, ", "))
+		// This case is actually handled inside the loop for ambiguity.
+		return nil, fmt.Errorf("%w: %q matches: %s", ErrAmbiguous, prefix, strings.Join(matches, ", "))
 	}
 }
 
