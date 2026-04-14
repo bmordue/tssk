@@ -397,40 +397,31 @@ func (s *Store) resolveOne(prefix string) (*task.Task, error) {
 
 	// Use binary search on sortedIDs to find tasks whose ID begins with prefix.
 	i := sort.SearchStrings(s.sortedIDs, prefix)
+	if i == len(s.sortedIDs) || !strings.HasPrefix(s.sortedIDs[i], prefix) {
+		return nil, fmt.Errorf("%w: %s", ErrNotFound, prefix)
+	}
+
+	// Optimization: if there's only one match, return it without allocating a slice.
+	if i+1 == len(s.sortedIDs) || !strings.HasPrefix(s.sortedIDs[i+1], prefix) {
+		return s.idMap[s.sortedIDs[i]], nil
+	}
+
+	// Ambiguous match: collect IDs for a helpful error message.
+	const maxErrorIDs = 5
 	var matches []string
-	for j := i; j < len(s.sortedIDs); j++ {
+	for j := i; j < len(s.sortedIDs) && len(matches) < maxErrorIDs; j++ {
 		id := s.sortedIDs[j]
 		if !strings.HasPrefix(id, prefix) {
 			break
 		}
 		matches = append(matches, id)
-		if len(matches) > 1 {
-			// Early exit for ambiguity: collect just a few more IDs for the error message.
-			const maxErrorIDs = 5
-			for k := j + 1; k < len(s.sortedIDs) && len(matches) < maxErrorIDs; k++ {
-				nextID := s.sortedIDs[k]
-				if !strings.HasPrefix(nextID, prefix) {
-					break
-				}
-				matches = append(matches, nextID)
-			}
-			msg := strings.Join(matches, ", ")
-			if j+1+maxErrorIDs-2 < len(s.sortedIDs) && strings.HasPrefix(s.sortedIDs[j+1+maxErrorIDs-2], prefix) {
-				msg += ", ..."
-			}
-			return nil, fmt.Errorf("%w: %q matches: %s", ErrAmbiguous, prefix, msg)
-		}
 	}
 
-	switch len(matches) {
-	case 1:
-		return s.idMap[matches[0]], nil
-	case 0:
-		return nil, fmt.Errorf("%w: %s", ErrNotFound, prefix)
-	default:
-		// This case is actually handled inside the loop for ambiguity.
-		return nil, fmt.Errorf("%w: %q matches: %s", ErrAmbiguous, prefix, strings.Join(matches, ", "))
+	msg := strings.Join(matches, ", ")
+	if i+maxErrorIDs < len(s.sortedIDs) && strings.HasPrefix(s.sortedIDs[i+maxErrorIDs], prefix) {
+		msg += ", ..."
 	}
+	return nil, fmt.Errorf("%w: %q matches: %s", ErrAmbiguous, prefix, msg)
 }
 
 // generateID produces the next sequential task ID (1, 2, 3, …).
