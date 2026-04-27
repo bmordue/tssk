@@ -202,10 +202,14 @@ func (s *Store) Get(id string) (*task.Task, error) {
 }
 
 // Add creates a new task with the given title and detail text, using deps as
-// the initial dependency task IDs and tags as the initial tags assigned to the
-// task, writes the detail markdown via the backend, and appends the task
-// metadata.
-func (s *Store) Add(title, detail string, deps []string, tags []string) (*task.Task, error) {
+// the initial dependency task IDs, tags as the initial tags assigned to the
+// task, and priority as the urgency level. It writes the detail markdown via
+// the backend, and appends the task metadata.
+func (s *Store) Add(title, detail string, deps []string, tags []string, priority task.Priority) (*task.Task, error) {
+	if !priority.IsValid() {
+		return nil, fmt.Errorf("unknown priority %q; valid values: low, medium, high, critical", priority)
+	}
+
 	tasks, err := s.LoadAll()
 	if err != nil {
 		return nil, err
@@ -217,6 +221,7 @@ func (s *Store) Add(title, detail string, deps []string, tags []string) (*task.T
 		Status:       task.StatusTodo,
 		Dependencies: deps,
 		Tags:         tags,
+		Priority:     priority,
 		CreatedAt:    time.Now().UTC(),
 	}
 
@@ -383,6 +388,115 @@ func (s *Store) SetTags(id string, tags []string) error {
 
 	found.Tags = tags
 	return s.saveAll(tasks)
+}
+
+// UpdateTitle changes the title of the task identified by id.
+// Since the title is part of the content-addressed hash, this will create a
+// new detail file with the updated hash and delete the old one.
+func (s *Store) UpdateTitle(id, title string) (*task.Task, error) {
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	found, loadErr := s.resolveOne(id)
+	if loadErr != nil {
+		return nil, loadErr
+	}
+
+	// Store old hash for cleanup
+	oldHash := found.DocHash
+
+	// Update title and recompute hash
+	found.Title = title
+	if hashErr := found.ComputeDocHash(); hashErr != nil {
+		return nil, fmt.Errorf("computing doc hash: %w", hashErr)
+	}
+
+	// Read old detail content
+	oldFilenameHash := oldHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(oldHash) {
+		oldFilenameHash = oldHash[:s.displayHashLength]
+	}
+	detail, err := s.backend.ReadDetail(oldFilenameHash)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, fmt.Errorf("reading old detail: %w", err)
+	}
+
+	// Write new detail file with new hash
+	newFilenameHash := found.DocHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(found.DocHash) {
+		newFilenameHash = found.DocHash[:s.displayHashLength]
+	}
+	if len(detail) > 0 {
+		if err := s.backend.WriteDetail(newFilenameHash, detail); err != nil {
+			return nil, fmt.Errorf("writing new detail: %w", err)
+		}
+	}
+
+	// Delete old detail file
+	if delErr := s.backend.DeleteDetail(oldFilenameHash); delErr != nil && !errors.Is(delErr, ErrNotFound) {
+		// Non-fatal: the old file might not exist
+		// Continue with save
+		_ = delErr // Explicitly ignore non-fatal error
+	}
+
+	if err := s.saveAll(tasks); err != nil {
+		// Best-effort rollback: try to restore old detail file
+		if len(detail) > 0 {
+			_ = s.backend.WriteDetail(oldFilenameHash, detail)
+		}
+		return nil, err
+	}
+
+	return found, nil
+}
+
+// UpdateDetail updates the markdown detail text for the task identified by id.
+func (s *Store) UpdateDetail(id string, detail string) (*task.Task, error) {
+	if _, err := s.LoadAll(); err != nil {
+		return nil, err
+	}
+
+	found, err := s.resolveOne(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write updated detail
+	filenameHash := found.DocHash
+	if s.displayHashLength > 0 && s.displayHashLength < len(found.DocHash) {
+		filenameHash = found.DocHash[:s.displayHashLength]
+	}
+	if err := s.backend.WriteDetail(filenameHash, []byte(detail)); err != nil {
+		return nil, fmt.Errorf("writing detail: %w", err)
+	}
+
+	return found, nil
+}
+
+// UpdatePriority changes the priority of the task identified by id.
+func (s *Store) UpdatePriority(id string, priority task.Priority) (*task.Task, error) {
+	if !priority.IsValid() {
+		return nil, fmt.Errorf("unknown priority %q; valid values: low, medium, high, critical", priority)
+	}
+
+	tasks, err := s.LoadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	found, err := s.resolveOne(id)
+	if err != nil {
+		return nil, err
+	}
+
+	found.Priority = priority
+	if err := s.saveAll(tasks); err != nil {
+		return nil, err
+	}
+
+	return found, nil
 }
 
 // resolveOne returns the unique task whose ID equals prefix exactly, or – if

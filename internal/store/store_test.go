@@ -30,7 +30,7 @@ func TestLoadAllEmpty(t *testing.T) {
 func TestAddAndGet(t *testing.T) {
 	s := newTempStore(t)
 
-	tk, err := s.Add("My first task", "Some detail text", nil, nil)
+	tk, err := s.Add("My first task", "Some detail text", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestAddCreatesDetailFile(t *testing.T) {
 	s := store.New(dir)
 
 	detail := "# My Task\n\nSome details here."
-	tk, err := s.Add("Test detail file", detail, nil, nil)
+	tk, err := s.Add("Test detail file", detail, nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestPrefixMatching(t *testing.T) {
 	s := newTempStore(t)
 	// Add 10 tasks to produce IDs "1" through "10".
 	for i := 0; i < 10; i++ {
-		if _, err := s.Add("Task", "", nil, nil); err != nil {
+		if _, err := s.Add("Task", "", nil, nil, task.PriorityNone); err != nil {
 			t.Fatalf("Add task %d: %v", i, err)
 		}
 	}
@@ -152,7 +152,7 @@ func TestAmbiguousPrefix(t *testing.T) {
 
 func TestUpdateStatus(t *testing.T) {
 	s := newTempStore(t)
-	tk, _ := s.Add("Status test", "", nil, nil)
+	tk, _ := s.Add("Status test", "", nil, nil, task.PriorityNone)
 
 	updated, err := s.UpdateStatus(tk.ID, task.StatusDone)
 	if err != nil {
@@ -174,11 +174,11 @@ func TestUpdateStatus(t *testing.T) {
 
 func TestAddAndRemoveDep(t *testing.T) {
 	s := newTempStore(t)
-	t1, err := s.Add("First task", "", nil, nil)
+	t1, err := s.Add("First task", "", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add t1: %v", err)
 	}
-	t2, err := s.Add("Second task", "", nil, nil)
+	t2, err := s.Add("Second task", "", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add t2: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestAddAndRemoveDep(t *testing.T) {
 func TestMultipleTasksLoadAll(t *testing.T) {
 	s := newTempStore(t)
 	for i := 0; i < 5; i++ {
-		if _, err := s.Add("Task", "", nil, nil); err != nil {
+		if _, err := s.Add("Task", "", nil, nil, task.PriorityNone); err != nil {
 			t.Fatalf("Add task %d: %v", i, err)
 		}
 	}
@@ -241,7 +241,7 @@ func TestMultipleTasksLoadAll(t *testing.T) {
 func TestReadDetail(t *testing.T) {
 	s := newTempStore(t)
 	detail := "# Detail\n\nContent."
-	tk, _ := s.Add("Task with detail", detail, nil, nil)
+	tk, _ := s.Add("Task with detail", detail, nil, nil, task.PriorityNone)
 
 	got, err := s.ReadDetail(tk)
 	if err != nil {
@@ -254,7 +254,7 @@ func TestReadDetail(t *testing.T) {
 
 func TestAddTagsDeduplication(t *testing.T) {
 	s := newTempStore(t)
-	tk, addErr := s.Add("Tag test task", "", nil, []string{"alpha"})
+	tk, addErr := s.Add("Tag test task", "", nil, []string{"alpha"}, task.PriorityNone)
 	if addErr != nil {
 		t.Fatalf("Add: %v", addErr)
 	}
@@ -278,7 +278,7 @@ func TestAddTagsDeduplication(t *testing.T) {
 
 func TestRemoveTagsNonExistent(t *testing.T) {
 	s := newTempStore(t)
-	tk, addErr := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"})
+	tk, addErr := s.Add("Tag remove test", "", nil, []string{"alpha", "beta"}, task.PriorityNone)
 	if addErr != nil {
 		t.Fatalf("Add: %v", addErr)
 	}
@@ -299,7 +299,7 @@ func TestRemoveTagsNonExistent(t *testing.T) {
 
 func TestSetTagsPersistence(t *testing.T) {
 	s := newTempStore(t)
-	tk, addErr := s.Add("SetTags persistence test", "", nil, []string{"old"})
+	tk, addErr := s.Add("SetTags persistence test", "", nil, []string{"old"}, task.PriorityNone)
 	if addErr != nil {
 		t.Fatalf("Add: %v", addErr)
 	}
@@ -321,5 +321,117 @@ func TestSetTagsPersistence(t *testing.T) {
 	}
 	if reloaded.HasTag("old") {
 		t.Error("expected old tag to be replaced by SetTags")
+	}
+}
+
+func TestUpdateTitle(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Original title", "Detail text", nil, nil, task.PriorityNone)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	oldHash := tk.DocHash
+
+	updated, err := s.UpdateTitle(tk.ID, "New title")
+	if err != nil {
+		t.Fatalf("UpdateTitle: %v", err)
+	}
+
+	if updated.Title != "New title" {
+		t.Errorf("expected title 'New title', got %q", updated.Title)
+	}
+	if updated.DocHash == oldHash {
+		t.Error("expected DocHash to change after title update")
+	}
+
+	// Verify persistence
+	reloaded, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if reloaded.Title != "New title" {
+		t.Errorf("expected persisted title 'New title', got %q", reloaded.Title)
+	}
+}
+
+func TestUpdateTitleWithDetail(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Title one", "Some detail", nil, nil, task.PriorityNone)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	oldHash := tk.DocHash
+
+	_, err = s.UpdateTitle(tk.ID, "Title two")
+	if err != nil {
+		t.Fatalf("UpdateTitle: %v", err)
+	}
+
+	// Verify detail file migrated
+	updated, err := s.Get(tk.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	detail, err := s.ReadDetail(updated)
+	if err != nil {
+		t.Fatalf("ReadDetail: %v", err)
+	}
+	if detail != "Some detail" {
+		t.Errorf("expected detail 'Some detail', got %q", detail)
+	}
+
+	// Verify hash changed
+	if updated.DocHash == oldHash {
+		t.Error("expected DocHash to change after title update")
+	}
+}
+
+func TestUpdateDetail(t *testing.T) {
+	s := newTempStore(t)
+	tk, err := s.Add("Test task", "Original detail", nil, nil, task.PriorityNone)
+	if err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+
+	updated, err := s.UpdateDetail(tk.ID, "Updated detail text")
+	if err != nil {
+		t.Fatalf("UpdateDetail: %v", err)
+	}
+
+	if updated.ID != tk.ID {
+		t.Errorf("expected ID %q, got %q", tk.ID, updated.ID)
+	}
+
+	// Verify persistence
+	detail, err := s.ReadDetail(updated)
+	if err != nil {
+		t.Fatalf("ReadDetail: %v", err)
+	}
+	if detail != "Updated detail text" {
+		t.Errorf("expected detail 'Updated detail text', got %q", detail)
+	}
+}
+
+func TestUpdateTitleNotFound(t *testing.T) {
+	s := newTempStore(t)
+	_, err := s.UpdateTitle("999", "New title")
+	if err == nil {
+		t.Fatal("expected error for non-existent task, got none")
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got: %v", err)
+	}
+}
+
+func TestUpdateDetailNotFound(t *testing.T) {
+	s := newTempStore(t)
+	_, err := s.UpdateDetail("999", "New detail")
+	if err == nil {
+		t.Fatal("expected error for non-existent task, got none")
+	}
+	if !errors.Is(err, store.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got: %v", err)
 	}
 }

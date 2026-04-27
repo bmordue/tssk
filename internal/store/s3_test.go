@@ -10,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
+	"github.com/bmordue/tssk/internal/task"
 )
 
 // mockS3Client implements the s3API interface used by S3Backend.
@@ -184,7 +186,7 @@ func TestS3BackendMockWorkflow(t *testing.T) {
 	}
 	s := NewWithBackend(backend)
 
-	tk, err := s.Add("S3 task", "detail content", nil, nil)
+	tk, err := s.Add("S3 task", "detail content", nil, nil, task.PriorityNone)
 	if err != nil {
 		t.Fatalf("Add: %v", err)
 	}

@@ -69,11 +69,17 @@ tssk list --status todo
 tssk list --status in-progress
 tssk list --status done
 tssk list --status blocked
+tssk list --title "search term"
+tssk list --status todo --title "authentication"
 ```
 
 Flags:
 
 - `-s, --status` - Filter by status (`todo`, `in-progress`, `done`, `blocked`)
+- `--title` - Filter by title (case-insensitive substring match)
+- `--tag` - Filter by tag
+- `--json` - Output tasks as JSON
+- `-a, --all-collections` - Include tasks from all configured collections
 
 ### List ready tasks
 
@@ -103,6 +109,21 @@ tssk status T-1 done
 ```
 
 Valid status values: `todo`, `in-progress`, `done`, `blocked`
+
+### Edit a task
+
+```bash
+tssk edit T-1 --title "New title"
+tssk edit T-1 --detail "New detail text"
+tssk edit T-1 --title "New title" --detail "New detail text"
+```
+
+Flags:
+
+- `--title` - Update task title
+- `--detail` - Update task detail text
+
+Note: Changing the title updates the content-addressed hash and will create a new detail file.
 
 ### Manage dependencies
 
