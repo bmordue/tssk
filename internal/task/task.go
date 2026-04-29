@@ -110,66 +110,84 @@ func (t *Task) ComputeDocHashN(length int) error {
 	return nil
 }
 
-// HasDependency reports whether id is listed as a dependency of t.
-func (t *Task) HasDependency(id string) bool {
-	for _, d := range t.Dependencies {
-		if d == id {
+// hasString reports whether val is present in slice.
+func hasString(slice []string, val string) bool {
+	for _, s := range slice {
+		if s == val {
 			return true
 		}
 	}
 	return false
+}
+
+// addString appends val to slice if not already present.
+// Returns the updated slice and true when val was added, or the original slice
+// and false when val was already present.
+func addString(slice []string, val string) ([]string, bool) {
+	if hasString(slice, val) {
+		return slice, false
+	}
+	return append(slice, val), true
+}
+
+// removeString removes the first occurrence of val from slice.
+// Returns the updated slice and true when val was found, or the original slice
+// and false when val was not present.
+func removeString(slice []string, val string) ([]string, bool) {
+	for i, s := range slice {
+		if s == val {
+			return append(slice[:i], slice[i+1:]...), true
+		}
+	}
+	return slice, false
+}
+
+// HasDependency reports whether id is listed as a dependency of t.
+func (t *Task) HasDependency(id string) bool {
+	return hasString(t.Dependencies, id)
 }
 
 // AddDependency appends id to the task's dependency list if not already
 // present.  Returns false if id was already a dependency.
 func (t *Task) AddDependency(id string) bool {
-	if t.HasDependency(id) {
-		return false
+	deps, added := addString(t.Dependencies, id)
+	if added {
+		t.Dependencies = deps
 	}
-	t.Dependencies = append(t.Dependencies, id)
-	return true
+	return added
 }
 
 // RemoveDependency removes id from the task's dependency list.  Returns false
 // if id was not in the list.
 func (t *Task) RemoveDependency(id string) bool {
-	for i, d := range t.Dependencies {
-		if d == id {
-			t.Dependencies = append(t.Dependencies[:i], t.Dependencies[i+1:]...)
-			return true
-		}
+	deps, removed := removeString(t.Dependencies, id)
+	if removed {
+		t.Dependencies = deps
 	}
-	return false
+	return removed
 }
 
 // HasTag reports whether tag is present in the task's tag list.
 func (t *Task) HasTag(tag string) bool {
-	for _, tg := range t.Tags {
-		if tg == tag {
-			return true
-		}
-	}
-	return false
+	return hasString(t.Tags, tag)
 }
 
 // AddTag appends tag to the task's tag list if not already present.
 // Returns false if tag was already present.
 func (t *Task) AddTag(tag string) bool {
-	if t.HasTag(tag) {
-		return false
+	tags, added := addString(t.Tags, tag)
+	if added {
+		t.Tags = tags
 	}
-	t.Tags = append(t.Tags, tag)
-	return true
+	return added
 }
 
 // RemoveTag removes tag from the task's tag list.  Returns false if tag was
 // not in the list.
 func (t *Task) RemoveTag(tag string) bool {
-	for i, tg := range t.Tags {
-		if tg == tag {
-			t.Tags = append(t.Tags[:i], t.Tags[i+1:]...)
-			return true
-		}
+	tags, removed := removeString(t.Tags, tag)
+	if removed {
+		t.Tags = tags
 	}
-	return false
+	return removed
 }

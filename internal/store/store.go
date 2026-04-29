@@ -250,22 +250,33 @@ func (s *Store) Add(title, detail string, deps []string, tags []string, priority
 	return t, nil
 }
 
-// UpdateStatus changes the status of the task identified by id (exact or unique prefix).
-func (s *Store) UpdateStatus(id string, status task.Status) (*task.Task, error) {
+// modifyTask loads all tasks, resolves the task identified by id, applies fn
+// to it, then saves.  fn may return an error to abort the save.  Returns the
+// resolved (and mutated) task on success.
+func (s *Store) modifyTask(id string, fn func(*task.Task) error) (*task.Task, error) {
 	tasks, err := s.LoadAll()
 	if err != nil {
 		return nil, err
 	}
-
 	found, err := s.resolveOne(id)
 	if err != nil {
 		return nil, err
 	}
-	found.Status = status
+	if err := fn(found); err != nil {
+		return nil, err
+	}
 	if err := s.saveAll(tasks); err != nil {
 		return nil, err
 	}
 	return found, nil
+}
+
+// UpdateStatus changes the status of the task identified by id (exact or unique prefix).
+func (s *Store) UpdateStatus(id string, status task.Status) (*task.Task, error) {
+	return s.modifyTask(id, func(t *task.Task) error {
+		t.Status = status
+		return nil
+	})
 }
 
 // AddDep appends dep to the dependency list of the task identified by id.
@@ -316,6 +327,48 @@ func (s *Store) RemoveDep(id, dep string) error {
 	return s.saveAll(tasks)
 }
 
+// AddTags appends tags to the task identified by id.
+func (s *Store) AddTags(id string, tags []string) error {
+	_, err := s.modifyTask(id, func(t *task.Task) error {
+		for _, tag := range tags {
+			t.AddTag(tag)
+		}
+		return nil
+	})
+	return err
+}
+
+// RemoveTags removes tags from the task identified by id.
+func (s *Store) RemoveTags(id string, tags []string) error {
+	_, err := s.modifyTask(id, func(t *task.Task) error {
+		for _, tag := range tags {
+			t.RemoveTag(tag)
+		}
+		return nil
+	})
+	return err
+}
+
+// SetTags replaces all tags on the task identified by id.
+func (s *Store) SetTags(id string, tags []string) error {
+	_, err := s.modifyTask(id, func(t *task.Task) error {
+		t.Tags = tags
+		return nil
+	})
+	return err
+}
+
+// UpdatePriority changes the priority of the task identified by id.
+func (s *Store) UpdatePriority(id string, priority task.Priority) (*task.Task, error) {
+	if !priority.IsValid() {
+		return nil, fmt.Errorf("unknown priority %q; valid values: low, medium, high, critical", priority)
+	}
+	return s.modifyTask(id, func(t *task.Task) error {
+		t.Priority = priority
+		return nil
+	})
+}
+
 // ReadDetail returns the markdown detail text for a task.
 func (s *Store) ReadDetail(t *task.Task) (string, error) {
 	// Use truncated hash for filename based on displayHashLength.
@@ -334,60 +387,6 @@ func (s *Store) ReadDetail(t *task.Task) (string, error) {
 		return "", fmt.Errorf("reading detail: %w", err)
 	}
 	return string(data), nil
-}
-
-// AddTags appends tags to the task identified by id.
-func (s *Store) AddTags(id string, tags []string) error {
-	tasks, err := s.LoadAll()
-	if err != nil {
-		return err
-	}
-
-	found, err := s.resolveOne(id)
-	if err != nil {
-		return err
-	}
-
-	for _, tag := range tags {
-		found.AddTag(tag)
-	}
-
-	return s.saveAll(tasks)
-}
-
-// RemoveTags removes tags from the task identified by id.
-func (s *Store) RemoveTags(id string, tags []string) error {
-	tasks, err := s.LoadAll()
-	if err != nil {
-		return err
-	}
-
-	found, err := s.resolveOne(id)
-	if err != nil {
-		return err
-	}
-
-	for _, tag := range tags {
-		found.RemoveTag(tag)
-	}
-
-	return s.saveAll(tasks)
-}
-
-// SetTags replaces all tags on the task identified by id.
-func (s *Store) SetTags(id string, tags []string) error {
-	tasks, err := s.LoadAll()
-	if err != nil {
-		return err
-	}
-
-	found, err := s.resolveOne(id)
-	if err != nil {
-		return err
-	}
-
-	found.Tags = tags
-	return s.saveAll(tasks)
 }
 
 // UpdateTitle changes the title of the task identified by id.
@@ -470,30 +469,6 @@ func (s *Store) UpdateDetail(id string, detail string) (*task.Task, error) {
 	}
 	if err := s.backend.WriteDetail(filenameHash, []byte(detail)); err != nil {
 		return nil, fmt.Errorf("writing detail: %w", err)
-	}
-
-	return found, nil
-}
-
-// UpdatePriority changes the priority of the task identified by id.
-func (s *Store) UpdatePriority(id string, priority task.Priority) (*task.Task, error) {
-	if !priority.IsValid() {
-		return nil, fmt.Errorf("unknown priority %q; valid values: low, medium, high, critical", priority)
-	}
-
-	tasks, err := s.LoadAll()
-	if err != nil {
-		return nil, err
-	}
-
-	found, err := s.resolveOne(id)
-	if err != nil {
-		return nil, err
-	}
-
-	found.Priority = priority
-	if err := s.saveAll(tasks); err != nil {
-		return nil, err
 	}
 
 	return found, nil
