@@ -17,7 +17,7 @@ func propTempStore(t *rapid.T) *store.Store {
 	if err != nil {
 		t.Fatalf("MkdirTemp: %v", err)
 	}
-	t.Cleanup(func() { os.RemoveAll(dir) })
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	return store.New(dir)
 }
 
@@ -89,18 +89,19 @@ func TestProperty_UpdateStatus_Persists(t *testing.T) {
 func TestProperty_AddRemoveTags_SetBehavior(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		s := propTempStore(t)
-		tk, err := s.Add("task", "", nil, nil, task.PriorityNone)
-		if err != nil {
-			t.Fatalf("Add: %v", err)
+		tk, addErr := s.Add("task", "", nil, nil, task.PriorityNone)
+		if addErr != nil {
+			t.Fatalf("Add: %v", addErr)
 		}
 		tags := rapid.SliceOfN(rapid.StringN(1, 20, 20), 1, 10).Draw(t, "tags")
-		if err := s.AddTags(tk.ID, tags); err != nil {
-			t.Fatalf("AddTags: %v", err)
+		if tagErr := s.AddTags(tk.ID, tags); tagErr != nil {
+			t.Fatalf("AddTags: %v", tagErr)
 		}
-		got, err := s.Get(tk.ID)
-		if err != nil {
-			t.Fatal(err)
+		got, getErr := s.Get(tk.ID)
+		if getErr != nil {
+			t.Fatal(getErr)
 		}
+		// All added tags must be present with no duplicates.
 		for _, tag := range tags {
 			if !got.HasTag(tag) {
 				t.Fatalf("tag %q missing after AddTags", tag)
@@ -112,6 +113,21 @@ func TestProperty_AddRemoveTags_SetBehavior(t *testing.T) {
 				t.Fatalf("duplicate tag: %q", tg)
 			}
 			seen[tg] = true
+		}
+		// Remove a random subset of tags and verify they're gone.
+		removeCount := rapid.IntRange(0, len(tags)).Draw(t, "removeCount")
+		toRemove := tags[:removeCount]
+		if rmErr := s.RemoveTags(tk.ID, toRemove); rmErr != nil {
+			t.Fatalf("RemoveTags: %v", rmErr)
+		}
+		got, getErr = s.Get(tk.ID)
+		if getErr != nil {
+			t.Fatal(getErr)
+		}
+		for _, tag := range toRemove {
+			if got.HasTag(tag) {
+				t.Fatalf("tag %q still present after RemoveTags", tag)
+			}
 		}
 	})
 }
